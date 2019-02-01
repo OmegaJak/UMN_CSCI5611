@@ -6,20 +6,13 @@
 
 void TextureManager::InitTextures() {
     // Allocate Texture 0
-    InitTexture(&tex0, "stone_wall.bmp");
-
-    // Allocate Texture 1
-    InitTexture(&tex1, "stone_floor.bmp");
+    InitTexture(&tex0, "stone_floor.bmp");
 }
 
 void TextureManager::Update() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
     glUniform1i(glGetUniformLocation(ShaderManager::Textured_Shader, "tex0"), 0);
-
-    glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, tex1);
-    glUniform1i(glGetUniformLocation(ShaderManager::Textured_Shader, "tex1"), 1);
 }
 
 void TextureManager::InitTexture(GLuint* tex_location, const char* file) {
@@ -47,4 +40,3 @@ void TextureManager::InitTexture(GLuint* tex_location, const char* file) {
 }
 
 GLuint TextureManager::tex0;
-GLuint TextureManager::tex1;

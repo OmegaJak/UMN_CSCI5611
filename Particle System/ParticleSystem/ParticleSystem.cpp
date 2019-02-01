@@ -2,11 +2,8 @@
 // Based on MazeGame, Jackson Kruger, 2018
 // Credit to Stephen J. Guy, 2018 for the foundations
 
-#include "bounding_box.h"
 #include "camera.h"
-#include "map.h"
-#include "map_loader.h"
-#include "player.h"
+#include "game_object.h"
 #include "shader_manager.h"
 #include "texture_manager.h"
 const char* INSTRUCTIONS =
@@ -48,7 +45,6 @@ const char* USAGE =
 #include <cstdio>
 #include <string>
 
-#include "map.h"
 #include "model_manager.h"
 
 using namespace std;
@@ -64,35 +60,7 @@ float rand01() {
     return rand() / (float)RAND_MAX;
 }
 
-void drawGeometry(int shaderProgram, int model1_start, int model1_numVerts, int model2_start, int model2_numVerts);
-
 int main(int argc, char* argv[]) {
-    // Parse command-line arguments
-    bool window_size_specified = false;
-    std::string map_file = "map2.txt";
-    int result;
-    for (int i = 1; i < argc; i++) {
-        if (argv[i][0] == '-') {
-            switch (argv[i][1]) {
-                case 'w':
-                    result = sscanf_s(argv[++i], "%ix%i", &screenWidth, &screenHeight);
-                    if (result == 2) {
-                        window_size_specified = true;
-                    } else {
-                        printf("%s\n", USAGE);
-                        exit(1);
-                    }
-                    break;
-                case 'm':
-                    map_file = argv[++i];
-                    break;
-                default:
-                    printf("%s\n", USAGE);
-                    exit(1);
-            }
-        }
-    }
-
     SDL_Init(SDL_INIT_VIDEO);  // Initialize Graphics (for OpenGL)
 
     // Ask SDL to get a recent version of OpenGL (3.2 or greater)
@@ -104,12 +72,10 @@ int main(int argc, char* argv[]) {
     SDL_Window* window = SDL_CreateWindow("My OpenGL Program", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
 
     // Maximize the window if no size was specified
-    if (!window_size_specified) {
-        SDL_SetWindowResizable(window, SDL_TRUE);                // Allow resizing
-        SDL_MaximizeWindow(window);                              // Maximize
-        SDL_GetWindowSize(window, &screenWidth, &screenHeight);  // Get the new size
-        SDL_SetWindowResizable(window, SDL_FALSE);               // Disable future resizing
-    }
+    SDL_SetWindowResizable(window, SDL_TRUE);                // Allow resizing
+    SDL_MaximizeWindow(window);                              // Maximize
+    SDL_GetWindowSize(window, &screenWidth, &screenHeight);  // Get the new size
+    SDL_SetWindowResizable(window, SDL_FALSE);               // Disable future resizing
 
     // Create a context to draw in
     SDL_GLContext context = SDL_GL_CreateContext(window);
@@ -127,12 +93,10 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
-    MapLoader map_loader;
-    Map* map = map_loader.LoadMap(map_file);
     Camera camera = Camera();
-
-    Player player(&camera, map);
-    map->Add(&player);
+    Model* cube = new Model("models/cube.txt");
+    GameObject floor = GameObject(cube);
+    // floor.SetTextureIndex(TEX0);
 
     // Load the textures
     TextureManager::InitTextures();
@@ -168,17 +132,6 @@ int main(int argc, char* argv[]) {
                 } else if (windowEvent.key.keysym.sym == SDLK_F11) {  // If F11 is pressed
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);  // Toggle fullscreen
-                } else if (windowEvent.key.keysym.sym == SDLK_LCTRL) {
-                    player.UnCrouch();
-                } else if (windowEvent.key.keysym.sym == SDLK_g) {
-                    player.DropKey();
-                }
-            }
-            if (windowEvent.type == SDL_KEYDOWN) {
-                if (windowEvent.key.keysym.sym == SDLK_SPACE) {
-                    player.Jump();
-                } else if (windowEvent.key.keysym.sym == SDLK_LCTRL) {
-                    player.Crouch();
                 }
             }
 
@@ -208,7 +161,6 @@ int main(int argc, char* argv[]) {
 
         timePassed = SDL_GetTicks() / 1000.f;
 
-        player.Update();
         camera.Update();
 
         glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.01f, 1000.0f);  // FOV, aspect, near, far
@@ -218,7 +170,7 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(vao);
 
-        map->UpdateAll();
+        floor.Update();
 
         SDL_GL_SwapWindow(window);  // Double buffering
     }

@@ -1,7 +1,7 @@
 #pragma once
 #include "glad.h"
 
-typedef enum { UNTEXTURED = -1, TEX0 = 0, TEX1 = 1 } TEXTURE;
+typedef enum { UNTEXTURED = -1, TEX0 = 0 } TEXTURE;
 
 class TextureManager {
    public:
@@ -11,5 +11,5 @@ class TextureManager {
    private:
     static void InitTexture(GLuint* tex_location, const char* file);
 
-    static GLuint tex0, tex1;
+    static GLuint tex0;
 };
