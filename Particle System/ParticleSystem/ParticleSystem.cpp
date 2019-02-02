@@ -137,8 +137,7 @@ int main(int argc, char* argv[]) {
 
             if (windowEvent.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE) {
                 // printf("Mouse movement (xrel, yrel): (%i, %i)\n", windowEvent.motion.xrel, windowEvent.motion.yrel);
-                float factor = 0.002f;
-                camera.Rotate(-windowEvent.motion.yrel * factor, windowEvent.motion.xrel * factor);
+                camera.ProcessMouseInput(windowEvent.motion.xrel, windowEvent.motion.yrel);
             }
 
             switch (windowEvent.window.event) {

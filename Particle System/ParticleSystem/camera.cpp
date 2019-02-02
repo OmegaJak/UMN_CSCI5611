@@ -1,3 +1,4 @@
+// Much of this was based on the camera found here https://learnopengl.com/code_viewer_gh.php?code=includes/learnopengl/camera.h
 
 #include <SDL.h>
 #define GLM_FORCE_RADIANS
@@ -9,90 +10,92 @@
 #include "gtx/rotate_vector.hpp"
 
 Camera::Camera() {
-    position_ = glm::vec3(0, 0, 1);
-    look_at_ = glm::vec3(3, 0, 1);
-    up_ = glm::vec3(0, 0, 1);
+    _position = glm::vec3(0, 0, 1);
+    _forward = glm::vec3(1, 0, 0);
+    _worldUp = _up = glm::vec3(0, 0, 1);
+
+    _yaw = 0.0f;
+    _pitch = 0.0f;
+
+    UpdateCameraVectors();
 }
 
-Camera::~Camera() {}
+void Camera::ProcessMouseInput(float deltaX, float deltaY, bool constrainPitch) {
+    const float mouseSensitivity = -0.1f;
+    deltaX *= mouseSensitivity;
+    deltaY *= mouseSensitivity;
 
-void Camera::Rotate(float vertical_rotation, float horizontal_rotation, float roll_rotation) {
-    if (abs(vertical_rotation) > ABSOLUTE_TOLERANCE) {  // Avoid the computations if we can
-        glm::vec3 right = glm::cross(look_at_ - position_, up_);
+    _yaw += deltaX;
+    _pitch += deltaY;
 
-        look_at_ = glm::rotate(look_at_ - position_, vertical_rotation, right) + position_;
-        up_ = glm::rotate(up_, vertical_rotation, right);
+    if (constrainPitch) {
+        if (_pitch > 89.0f) _pitch = 89.0f;
+        if (_pitch < -89.0f) _pitch = -89.0f;
     }
 
-    if (abs(horizontal_rotation) > ABSOLUTE_TOLERANCE) {
-        look_at_ = glm::rotate(look_at_ - position_, -horizontal_rotation, up_) + position_;
-    }
-
-    if (abs(roll_rotation) > ABSOLUTE_TOLERANCE) {
-        up_ = glm::rotate(up_, roll_rotation, look_at_ - position_);
-    }
+    UpdateCameraVectors();
 }
 
-void Camera::Translate(float right, float up, float forward) {
-    glm::vec3 forward_vec = glm::normalize(look_at_ - position_);
-    glm::vec3 right_vec = glm::normalize(glm::cross(forward_vec, up_));
-
-    glm::vec3 translation = right * right_vec + up * up_ + forward * forward_vec;
-    position_ += translation;
-    look_at_ += translation;
-}
-
-void Camera::SetPosition(const glm::vec3& position) {
-    position_ = position;
-}
-
-void Camera::SetLookAt(const glm::vec3& look_at_position) {
-    look_at_ = look_at_position;
-}
-
-void Camera::SetUp(const glm::vec3& up) {
-    up_ = up;
-}
-
-void Camera::Update() {
+void Camera::ProcessKeyboardInput() {
     const Uint8* key_state = SDL_GetKeyboardState(NULL);
-    if (key_state[SDL_SCANCODE_UP]) {
-        Rotate(CAMERA_ROTATION_SPEED, 0);
-    } else if (key_state[SDL_SCANCODE_DOWN]) {
-        Rotate(-CAMERA_ROTATION_SPEED, 0);
-    }
-    if (key_state[SDL_SCANCODE_RIGHT]) {
-        Rotate(0, CAMERA_ROTATION_SPEED);
-    } else if (key_state[SDL_SCANCODE_LEFT]) {
-        Rotate(0, -CAMERA_ROTATION_SPEED);
-    }
-    if (key_state[SDL_SCANCODE_E]) {
-        Rotate(0, 0, CAMERA_ROTATION_SPEED);
-    } else if (key_state[SDL_SCANCODE_Q]) {
-        Rotate(0, 0, -CAMERA_ROTATION_SPEED);
-    }
 
+    auto rotateSpeed = CAMERA_ROTATION_SPEED;
     auto moveSpeed = CAMERA_MOVE_SPEED;
     if (key_state[SDL_SCANCODE_LSHIFT]) {
         moveSpeed = MAX_MOVE_SPEED;
     }
 
-    if (key_state[SDL_SCANCODE_W]) {
-        Translate(0, 0, moveSpeed);
-    } else if (key_state[SDL_SCANCODE_S]) {
-        Translate(0, 0, -moveSpeed);
-    }
-    if (key_state[SDL_SCANCODE_D]) {
-        Translate(moveSpeed, 0, 0);
-    } else if (key_state[SDL_SCANCODE_A]) {
-        Translate(-moveSpeed, 0, 0);
-    }
-    if (key_state[SDL_SCANCODE_R]) {
-        Translate(0, moveSpeed, 0);
-    } else if (key_state[SDL_SCANCODE_F]) {
-        Translate(0, -moveSpeed, 0);
+    // Look up/down
+    if (key_state[SDL_SCANCODE_UP]) {
+        _pitch += rotateSpeed;
+    } else if (key_state[SDL_SCANCODE_DOWN]) {
+        _pitch -= rotateSpeed;
     }
 
-    glm::mat4 view = glm::lookAt(position_, look_at_, up_);
+    // Look right/left
+    if (key_state[SDL_SCANCODE_RIGHT]) {
+        _yaw += rotateSpeed;
+    } else if (key_state[SDL_SCANCODE_LEFT]) {
+        _yaw -= rotateSpeed;
+    }
+
+    // Forward/back
+    if (key_state[SDL_SCANCODE_W]) {
+        _position += _forward * moveSpeed;
+    } else if (key_state[SDL_SCANCODE_S]) {
+        _position -= _forward * moveSpeed;
+    }
+
+    // Right/left
+    if (key_state[SDL_SCANCODE_D]) {
+        _position += _right * moveSpeed;
+    } else if (key_state[SDL_SCANCODE_A]) {
+        _position -= _right * moveSpeed;
+    }
+
+    // Up/down
+    if (key_state[SDL_SCANCODE_R]) {
+        _position += _up * moveSpeed;
+    } else if (key_state[SDL_SCANCODE_F]) {
+        _position -= _up * moveSpeed;
+    }
+
+    UpdateCameraVectors();
+}
+
+void Camera::Update() {
+    ProcessKeyboardInput();
+    glm::mat4 view = glm::lookAt(_position, _position + _forward, _up);
     glUniformMatrix4fv(ShaderManager::Attributes.view, 1, GL_FALSE, glm::value_ptr(view));
+}
+
+void Camera::UpdateCameraVectors() {
+    glm::vec3 forward;
+    forward.x = cos(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+    forward.y = sin(glm::radians(_yaw)) * cos(glm::radians(_pitch));
+    forward.z = sin(glm::radians(_pitch));
+    _forward = glm::normalize(forward);
+
+    _right = glm::normalize(glm::cross(_forward, _worldUp));
+    _up = glm::normalize(glm::cross(_right, _forward));
 }
