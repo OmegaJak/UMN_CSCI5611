@@ -4,6 +4,7 @@
 
 #define GLM_FORCE_RADIANS
 #include "Camera.h"
+#include "Environment.h"
 #include "GameObject.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
@@ -94,9 +95,8 @@ int main(int argc, char* argv[]) {
     }
 
     Camera camera = Camera();
-    Model* cube = new Model("models/cube.txt");
-    GameObject floor = GameObject(cube);
-    floor.SetTextureIndex(TEX0);
+
+    Environment environment = Environment();
 
     // Load the textures
     TextureManager::InitTextures();
@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
             if (windowEvent.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE) {
                 // printf("Mouse movement (xrel, yrel): (%i, %i)\n", windowEvent.motion.xrel, windowEvent.motion.yrel);
                 float factor = 0.002f;
-                camera.Rotate(0, windowEvent.motion.xrel * factor);
+                camera.Rotate(-windowEvent.motion.yrel * factor, windowEvent.motion.xrel * factor);
             }
 
             switch (windowEvent.window.event) {
@@ -154,7 +154,7 @@ int main(int argc, char* argv[]) {
         }
 
         // Clear the screen to default color
-        glClearColor(.2f, 0.4f, 0.8f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glUseProgram(ShaderManager::Textured_Shader);
@@ -170,7 +170,7 @@ int main(int argc, char* argv[]) {
 
         glBindVertexArray(vao);
 
-        floor.Update();
+        environment.UpdateAll();
 
         SDL_GL_SwapWindow(window);  // Double buffering
     }

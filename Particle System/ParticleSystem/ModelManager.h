@@ -1,7 +1,7 @@
 #pragma once
 #include <vector>
+#include "Model.h"
 #include "glad.h"
-#include "model.h"
 
 class ModelManager {
    public:

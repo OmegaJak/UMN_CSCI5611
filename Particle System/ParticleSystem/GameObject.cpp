@@ -1,3 +1,4 @@
+#define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
 #include "GameObject.h"
 #include "ShaderManager.h"
@@ -29,4 +30,8 @@ void GameObject::Update() {
     }
 
     glDrawArrays(GL_TRIANGLES, model_->vbo_vertex_start_index_, model_->NumVerts());
+}
+
+void GameObject::SetPosition(const glm::vec3& position) {
+    transform_[3] = glm::vec4(position, transform_[3][3]);
 }

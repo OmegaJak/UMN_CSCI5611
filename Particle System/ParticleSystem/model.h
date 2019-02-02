@@ -1,5 +1,5 @@
 #pragma once
-#include <detail/type_vec4.hpp>
+#include <glm.hpp>
 #include <string>
 #include <vector>
 

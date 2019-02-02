@@ -1,7 +1,9 @@
 #pragma once
-#include "material.h"
-#include "model.h"
+#include <detail/type_mat.hpp>
+#include "Material.h"
+#include "Model.h"
 #include "TextureManager.h"
+#include "glm.hpp"
 
 class GameObject {
    public:
@@ -9,6 +11,7 @@ class GameObject {
     explicit GameObject(Model* model);
     virtual ~GameObject();
 
+    void SetPosition(const glm::vec3& position);
     void SetTextureIndex(TEXTURE texture_index);
 
     void Update();

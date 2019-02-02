@@ -4,13 +4,13 @@
 #include <gtc/type_ptr.hpp>
 #include "Camera.h"
 #include "Constants.h"
+#include "ShaderManager.h"
 #include "glad.h"
 #include "gtx/rotate_vector.hpp"
-#include "ShaderManager.h"
 
 Camera::Camera() {
-    position_ = glm::vec3(3, 0, 0);
-    look_at_ = glm::vec3(0, 0, 0);
+    position_ = glm::vec3(0, 0, 1);
+    look_at_ = glm::vec3(3, 0, 1);
     up_ = glm::vec3(0, 0, 1);
 }
 
@@ -72,20 +72,25 @@ void Camera::Update() {
         Rotate(0, 0, -CAMERA_ROTATION_SPEED);
     }
 
+    auto moveSpeed = CAMERA_MOVE_SPEED;
+    if (key_state[SDL_SCANCODE_LSHIFT]) {
+        moveSpeed = MAX_MOVE_SPEED;
+    }
+
     if (key_state[SDL_SCANCODE_W]) {
-        Translate(0, 0, CAMERA_MOVE_SPEED);
+        Translate(0, 0, moveSpeed);
     } else if (key_state[SDL_SCANCODE_S]) {
-        Translate(0, 0, -CAMERA_MOVE_SPEED);
+        Translate(0, 0, -moveSpeed);
     }
     if (key_state[SDL_SCANCODE_D]) {
-        Translate(CAMERA_MOVE_SPEED, 0, 0);
+        Translate(moveSpeed, 0, 0);
     } else if (key_state[SDL_SCANCODE_A]) {
-        Translate(-CAMERA_MOVE_SPEED, 0, 0);
+        Translate(-moveSpeed, 0, 0);
     }
     if (key_state[SDL_SCANCODE_R]) {
-        Translate(0, CAMERA_MOVE_SPEED, 0);
+        Translate(0, moveSpeed, 0);
     } else if (key_state[SDL_SCANCODE_F]) {
-        Translate(0, -CAMERA_MOVE_SPEED, 0);
+        Translate(0, -moveSpeed, 0);
     }
 
     glm::mat4 view = glm::lookAt(position_, look_at_, up_);
