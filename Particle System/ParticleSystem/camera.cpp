@@ -83,6 +83,14 @@ void Camera::ProcessKeyboardInput() {
     UpdateCameraVectors();
 }
 
+glm::vec3 Camera::GetPosition() {
+    return _position;
+}
+
+glm::vec3 Camera::GetForward() {
+    return _forward;
+}
+
 void Camera::Update() {
     ProcessKeyboardInput();
     glm::mat4 view = glm::lookAt(_position, _position + _forward, _up);

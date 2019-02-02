@@ -8,6 +8,8 @@ class Camera {
     void ProcessMouseInput(float deltaX, float deltaY, bool constrainPitch = true);
     void ProcessKeyboardInput();
 
+    glm::vec3 GetPosition();
+    glm::vec3 GetForward();
     void Update();
 
    private:

@@ -6,6 +6,7 @@
 #include "Camera.h"
 #include "Environment.h"
 #include "GameObject.h"
+#include "ParticleManager.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
 const char* INSTRUCTIONS =
@@ -68,6 +69,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 2);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     // Create a window (offsetx, offsety, width, height, flags)
     SDL_Window* window = SDL_CreateWindow("My OpenGL Program", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -94,9 +96,13 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    SDL_GL_SetSwapInterval(1);
+
     Camera camera = Camera();
 
     Environment environment = Environment();
+
+    ParticleManager particleManager = ParticleManager();
 
     // Load the textures
     TextureManager::InitTextures();
@@ -121,6 +127,10 @@ int main(int argc, char* argv[]) {
     // Event Loop (Loop forever processing each event as fast as possible)
     SDL_Event windowEvent;
     bool quit = false;
+    float lastTickTime = 0;
+    int frameCounter = 0;
+    float lastFramesTimer = 0;
+    int framesPerSample = 10;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -132,6 +142,10 @@ int main(int argc, char* argv[]) {
                 } else if (windowEvent.key.keysym.sym == SDLK_F11) {  // If F11 is pressed
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);  // Toggle fullscreen
+                }
+            } else if (windowEvent.type == SDL_KEYDOWN) {
+                if (windowEvent.key.keysym.sym == SDLK_SPACE) {
+                    particleManager.SpawnParticle(camera.GetPosition() + camera.GetForward(), camera.GetForward() * 7.5f);
                 }
             }
 
@@ -158,8 +172,19 @@ int main(int argc, char* argv[]) {
 
         glUseProgram(ShaderManager::Textured_Shader);
 
-        timePassed = SDL_GetTicks() / 1000.f;
+        float deltaTime = (SDL_GetTicks() / 1000.0f) - lastTickTime;
+        lastTickTime = SDL_GetTicks() / 1000.0f;
 
+        frameCounter++;
+        lastFramesTimer += deltaTime;
+        if (frameCounter >= framesPerSample) {
+            printf("Time for the last %i frames: %f ms, average time per frame: %f\n", framesPerSample, lastFramesTimer * 1000.0,
+                   (lastFramesTimer * 1000.0f) / framesPerSample);
+            frameCounter = 0;
+            lastFramesTimer = 0;
+        }
+
+        particleManager.MoveParticles(deltaTime);
         camera.Update();
 
         glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.01f, 1000.0f);  // FOV, aspect, near, far
@@ -170,6 +195,7 @@ int main(int argc, char* argv[]) {
         glBindVertexArray(vao);
 
         environment.UpdateAll();
+        particleManager.RenderParticles();
 
         SDL_GL_SwapWindow(window);  // Double buffering
     }
