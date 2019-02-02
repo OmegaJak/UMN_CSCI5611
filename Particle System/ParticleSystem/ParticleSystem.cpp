@@ -2,6 +2,7 @@
 // Based on MazeGame, Jackson Kruger, 2018
 // Credit to Stephen J. Guy, 2018 for the foundations
 
+#define GLM_FORCE_RADIANS
 #include "camera.h"
 #include "game_object.h"
 #include "shader_manager.h"
@@ -37,7 +38,6 @@ const char* USAGE =
 #endif
 #include <cstdio>
 
-#define GLM_FORCE_RADIANS
 #include "glm.hpp"
 #include "gtc/matrix_transform.hpp"
 #include "gtc/type_ptr.hpp"
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]) {
     Camera camera = Camera();
     Model* cube = new Model("models/cube.txt");
     GameObject floor = GameObject(cube);
-    // floor.SetTextureIndex(TEX0);
+    floor.SetTextureIndex(TEX0);
 
     // Load the textures
     TextureManager::InitTextures();
@@ -138,7 +138,7 @@ int main(int argc, char* argv[]) {
             if (windowEvent.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE) {
                 // printf("Mouse movement (xrel, yrel): (%i, %i)\n", windowEvent.motion.xrel, windowEvent.motion.yrel);
                 float factor = 0.002f;
-                camera.Rotate(0, -windowEvent.motion.xrel * factor);
+                camera.Rotate(0, windowEvent.motion.xrel * factor);
             }
 
             switch (windowEvent.window.event) {
