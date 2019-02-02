@@ -3,10 +3,10 @@
 // Credit to Stephen J. Guy, 2018 for the foundations
 
 #define GLM_FORCE_RADIANS
-#include "camera.h"
-#include "game_object.h"
-#include "shader_manager.h"
-#include "texture_manager.h"
+#include "Camera.h"
+#include "GameObject.h"
+#include "ShaderManager.h"
+#include "TextureManager.h"
 const char* INSTRUCTIONS =
     "***************\n"
     "This is a particle system made by Jackson Kruger for CSCI 5611 at the University of Minnesota.\n"
@@ -45,7 +45,7 @@ const char* USAGE =
 #include <cstdio>
 #include <string>
 
-#include "model_manager.h"
+#include "ModelManager.h"
 
 using namespace std;
 

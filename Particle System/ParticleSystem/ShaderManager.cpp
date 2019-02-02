@@ -1,5 +1,5 @@
-#include "constants.h"
-#include "shader_manager.h"
+#include "Constants.h"
+#include "ShaderManager.h"
 
 int ShaderManager::InitShader(const std::string& vertex_shader_file, const std::string& fragment_shader_file) {
     Textured_Shader = CompileShaderProgram(vertex_shader_file, fragment_shader_file);

@@ -1,6 +1,6 @@
 #include <algorithm>
-#include "constants.h"
-#include "model_manager.h"
+#include "Constants.h"
+#include "ModelManager.h"
 
 void ModelManager::RegisterModel(Model* model) {
     models_.push_back(model);

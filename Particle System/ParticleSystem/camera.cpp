@@ -2,11 +2,11 @@
 #include <SDL.h>
 #define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
-#include "camera.h"
-#include "constants.h"
+#include "Camera.h"
+#include "Constants.h"
 #include "glad.h"
 #include "gtx/rotate_vector.hpp"
-#include "shader_manager.h"
+#include "ShaderManager.h"
 
 Camera::Camera() {
     position_ = glm::vec3(3, 0, 0);

@@ -1,7 +1,7 @@
 #include <gtc/type_ptr.hpp>
-#include "game_object.h"
+#include "GameObject.h"
+#include "ShaderManager.h"
 #include "glad.h"
-#include "shader_manager.h"
 
 GameObject::GameObject() : GameObject(nullptr) {}
 

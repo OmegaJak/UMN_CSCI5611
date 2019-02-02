@@ -4,9 +4,9 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include "constants.h"
+#include "Constants.h"
 #include "model.h"
-#include "model_manager.h"
+#include "ModelManager.h"
 
 using std::string;
 using std::vector;

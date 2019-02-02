@@ -1,8 +1,8 @@
 #include <SDL.h>
 #include <cstdio>
 #include "glad.h"
-#include "shader_manager.h"
-#include "texture_manager.h"
+#include "ShaderManager.h"
+#include "TextureManager.h"
 
 void TextureManager::InitTextures() {
     // Allocate Texture 0
