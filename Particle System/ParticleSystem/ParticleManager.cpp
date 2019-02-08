@@ -1,4 +1,5 @@
 #define GLM_FORCE_RADIANS
+#include <ctime>
 #include <gtc/type_ptr.hpp>
 #include "ParticleManager.h"
 #include "ShaderManager.h"
@@ -14,6 +15,7 @@ ParticleManager::ParticleManager() {
     Lifetimes = std::vector<float>();
 
     _particleModel = new Model("models/sphere.txt");
+    srand(time(NULL));
 }
 
 void ParticleManager::MoveParticles(float dt) {
@@ -54,7 +56,6 @@ void ParticleManager::MoveParticles(float dt) {
         if (Lifetimes[i] > 15) {
             DeleteParticle(i);
             i--;
-            continue;
         }
     }
 }
@@ -63,6 +64,23 @@ void ParticleManager::SpawnParticle(const glm::vec3& position, const glm::vec3& 
     Positions.push_back(position);
     Velocities.push_back(velocity);
     Lifetimes.push_back(0);
+}
+
+void ParticleManager::SpawnParticles(float dt) {
+    const glm::vec3 startPos = glm::vec3(1, 1, 10);
+    const glm::vec3 startVel = glm::vec3(1, 1, 7);
+
+    float toGenerate = genRate * dt;
+    float fracPart = toGenerate - (int)toGenerate;
+    toGenerate = (int)toGenerate;
+    if (rand01() < fracPart) {
+        toGenerate++;
+    }
+
+    for (int i = 0; i < toGenerate; i++) {
+        SpawnParticle(startPos + glm::vec3(rand01() - 0.5, rand01() - 0.5, rand01() - 0.5),
+                      startVel + glm::vec3(rand01() - 0.5, rand01() - 0.5, rand01()));
+    }
 }
 
 void ParticleManager::RenderParticles() {
@@ -78,8 +96,16 @@ void ParticleManager::RenderParticles() {
     }
 }
 
+int ParticleManager::GetNumParticles() const {
+    return Positions.size();
+}
+
 void ParticleManager::DeleteParticle(int index) {
     Positions.erase(Positions.begin() + index);
     Velocities.erase(Velocities.begin() + index);
     Lifetimes.erase(Lifetimes.begin() + index);
+}
+
+float ParticleManager::rand01() {
+    return (float)rand() / RAND_MAX;
 }

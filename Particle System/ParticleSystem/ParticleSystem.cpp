@@ -3,6 +3,8 @@
 // Credit to Stephen J. Guy, 2018 for the foundations
 
 #define GLM_FORCE_RADIANS
+#include <iomanip>
+#include <sstream>
 #include "Camera.h"
 #include "Environment.h"
 #include "GameObject.h"
@@ -130,7 +132,9 @@ int main(int argc, char* argv[]) {
     float lastTickTime = 0;
     int frameCounter = 0;
     float lastFramesTimer = 0;
-    int framesPerSample = 10;
+    float lastFramerate = 0;
+    int framesPerSample = 20;
+    string lastAverageFrameTime;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -142,6 +146,15 @@ int main(int argc, char* argv[]) {
                 } else if (windowEvent.key.keysym.sym == SDLK_F11) {  // If F11 is pressed
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);  // Toggle fullscreen
+                } else if (windowEvent.key.keysym.sym == SDLK_EQUALS || windowEvent.key.keysym.sym == SDLK_MINUS) {
+                    float modAmount = 20;
+                    if (windowEvent.key.keysym.mod & KMOD_SHIFT) {
+                        modAmount = 100;
+                    }
+
+                    if (windowEvent.key.keysym.sym == SDLK_MINUS) modAmount *= -1;
+
+                    particleManager.genRate += modAmount;
                 }
             } else if (windowEvent.type == SDL_KEYDOWN) {
                 if (windowEvent.key.keysym.sym == SDLK_SPACE) {
@@ -178,12 +191,22 @@ int main(int argc, char* argv[]) {
         frameCounter++;
         lastFramesTimer += deltaTime;
         if (frameCounter >= framesPerSample) {
-            printf("Time for the last %i frames: %f ms, average time per frame: %f\n", framesPerSample, lastFramesTimer * 1000.0,
-                   (lastFramesTimer * 1000.0f) / framesPerSample);
+            lastAverageFrameTime = std::to_string((lastFramesTimer * 1000.0f) / framesPerSample) + "ms";
+            lastFramerate = 1.0f / (lastFramesTimer / framesPerSample);
+            printf("Time for the last %i frames: %f ms, average time per frame: %s\n", framesPerSample, lastFramesTimer * 1000.0,
+                   lastAverageFrameTime.c_str());
+
             frameCounter = 0;
             lastFramesTimer = 0;
         }
 
+        stringstream debugText;
+        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " particles | genRate: " << particleManager.genRate
+                  << " | " << lastAverageFrameTime << " per frame average | " << lastFramerate << " FPS average over " << framesPerSample
+                  << " frames";
+        SDL_SetWindowTitle(window, debugText.str().c_str());
+
+        particleManager.SpawnParticles(deltaTime);
         particleManager.MoveParticles(deltaTime);
         camera.Update();
 
