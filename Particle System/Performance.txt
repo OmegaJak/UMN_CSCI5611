@@ -1,0 +1,2 @@
+No effort put into optimization (using spheres, non-batched draw calls, no parallelism): ~33,000 @ 30FPS
+- about twice as many if using cubes
