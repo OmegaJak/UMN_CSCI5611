@@ -4,6 +4,8 @@
 
 struct particleParams {
     GLfloat centerX, centerY, centerZ;
+    GLfloat minX, minY, minZ;
+    GLfloat maxX, maxY, maxZ;
     GLfloat simulationSpeed;
     GLfloat gravityAccelerationFactor;
 };

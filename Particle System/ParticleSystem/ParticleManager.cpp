@@ -28,7 +28,13 @@ struct color {
 ParticleManager::ParticleManager() {
     _particleModel = new Model("models/sphere.txt");
     srand(time(NULL));
-    particleParameters = particleParams{50.f, 50.f, 50.f, 1.0f, 0.0f};
+    particleParameters = particleParams{
+        50.f,    50.f,    50.f,     // gravity center
+        -5000.f, -5000.f, -5000.f,  // min
+        5000.f,  5000.f,  5000.f,   // max
+        1.0f,                       // sim speed
+        0.0f,                       // grav factor
+    };
     InitGL();
 }
 
@@ -81,10 +87,7 @@ void ParticleManager::InitGL() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(particleParams), NULL, GL_STATIC_DRAW);
 
     particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
-    params->centerX = particleParameters.centerX;
-    params->centerY = particleParameters.centerY;
-    params->centerZ = particleParameters.centerZ;
-
+    *params = particleParameters;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
