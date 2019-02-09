@@ -29,9 +29,9 @@ void GameObject::Update() {
 
     glUniformMatrix4fv(ShaderManager::Attributes.model, 1, GL_FALSE, glm::value_ptr(transform_));  // pass model matrix to shader
     glUniform1i(ShaderManager::Attributes.texID, texture_index_);                                  // Set which texture to use
-    if (texture_index_ == UNTEXTURED) {
-        glUniform3fv(ShaderManager::Attributes.color, 1, glm::value_ptr(material_.color_));  // Update the color, if necessary
-    }
+    // if (texture_index_ == UNTEXTURED) {
+    //    glUniform3fv(ShaderManager::Attributes.color, 1, glm::value_ptr(material_.color_));  // Update the color, if necessary
+    //}
 
     glDrawArrays(GL_TRIANGLES, model_->vbo_vertex_start_index_, model_->NumVerts());
 }

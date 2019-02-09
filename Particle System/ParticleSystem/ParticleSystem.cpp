@@ -64,6 +64,11 @@ float rand01() {
     return rand() / (float)RAND_MAX;
 }
 
+std::ostream& operator<<(std::ostream& out, glm::vec3 const& vec) {
+    out << "(" << vec.x << ", " << vec.y << ", " << vec.z << ")";
+    return out;
+}
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);  // Initialize Graphics (for OpenGL)
 
@@ -85,7 +90,7 @@ int main(int argc, char* argv[]) {
     // Create a context to draw in
     SDL_GLContext context = SDL_GL_CreateContext(window);
 
-    SDL_SetRelativeMouseMode(SDL_TRUE);  // 'grab' the mouse
+    // SDL_SetRelativeMouseMode(SDL_TRUE);  // 'grab' the mouse
 
     // Load OpenGL extentions with GLAD
     if (gladLoadGLLoader(SDL_GL_GetProcAddress)) {
@@ -135,6 +140,10 @@ int main(int argc, char* argv[]) {
     float lastFramerate = 0;
     int framesPerSample = 20;
     string lastAverageFrameTime;
+    int mouseX = -1, mouseY = -1;
+    float normalizedMouseX, normalizedMouseY;
+    glm::vec3 lastMouseWorldCoord;
+    float fullGravityAcceleration = 1.0f;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -147,24 +156,42 @@ int main(int argc, char* argv[]) {
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);  // Toggle fullscreen
                 } else if (windowEvent.key.keysym.sym == SDLK_EQUALS || windowEvent.key.keysym.sym == SDLK_MINUS) {
-                    float modAmount = 20;
-                    if (windowEvent.key.keysym.mod & KMOD_SHIFT) {
-                        modAmount = 100;
-                    }
+                    float modAmount = 0.1;
+                    if (windowEvent.key.keysym.mod & KMOD_CTRL) modAmount *= 10;
+                    if (windowEvent.key.keysym.mod & KMOD_SHIFT) modAmount *= 2;
 
                     if (windowEvent.key.keysym.sym == SDLK_MINUS) modAmount *= -1;
 
-                    particleManager.genRate += modAmount;
+                    if (windowEvent.key.keysym.mod & KMOD_CTRL) {
+                        fullGravityAcceleration += modAmount;
+                        particleManager.particleParameters.gravityAccelerationFactor = fullGravityAcceleration;
+                    } else {
+                        particleManager.particleParameters.simulationSpeed += modAmount;
+                    }
                 }
             } else if (windowEvent.type == SDL_KEYDOWN) {
                 if (windowEvent.key.keysym.sym == SDLK_SPACE) {
-                    // particleManager.SpawnParticle(camera.GetPosition() + camera.GetForward(), camera.GetForward() * 7.5f);
+                    if (particleManager.particleParameters.simulationSpeed > 0) {
+                        particleManager.particleParameters.simulationSpeed = 0;
+                    } else {
+                        particleManager.particleParameters.simulationSpeed = 1;
+                    }
                 }
+            }
+
+            if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)) {  // Right click is down
+                SDL_SetRelativeMouseMode(SDL_TRUE);
+            } else {
+                SDL_SetRelativeMouseMode(SDL_FALSE);
             }
 
             if (windowEvent.type == SDL_MOUSEMOTION && SDL_GetRelativeMouseMode() == SDL_TRUE) {
                 // printf("Mouse movement (xrel, yrel): (%i, %i)\n", windowEvent.motion.xrel, windowEvent.motion.yrel);
                 camera.ProcessMouseInput(windowEvent.motion.xrel, windowEvent.motion.yrel);
+            } else if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
+                SDL_GetMouseState(&mouseX, &mouseY);
+                normalizedMouseX = (2 * (mouseX / (double)screenWidth)) - 1;
+                normalizedMouseY = (2 * (mouseY / (double)screenHeight)) - 1;
             }
 
             switch (windowEvent.window.event) {
@@ -174,7 +201,6 @@ int main(int argc, char* argv[]) {
                     break;
                 case SDL_WINDOWEVENT_FOCUS_GAINED:
                     SDL_Log("Window focus gained");
-                    SDL_SetRelativeMouseMode(SDL_TRUE);
                     break;
             }
         }
@@ -216,18 +242,30 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
-        stringstream debugText;
-        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " particles "
-                  << " | " << lastAverageFrameTime << " per frame average | " << lastFramerate << " FPS average over " << framesPerSample
-                  << " frames";
-        SDL_SetWindowTitle(window, debugText.str().c_str());
-
         // particleManager.SpawnParticles(deltaTime);
         // particleManager.MoveParticles(deltaTime);
         camera.Update();
-
         glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.1f, 10000.0f);  // FOV, aspect, near, far
         glUniformMatrix4fv(ShaderManager::Attributes.projection, 1, GL_FALSE, glm::value_ptr(proj));
+
+        if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+            lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, 100);
+            particleManager.particleParameters.centerX = lastMouseWorldCoord.x;
+            particleManager.particleParameters.centerY = lastMouseWorldCoord.y;
+            particleManager.particleParameters.centerZ = lastMouseWorldCoord.z;
+            particleManager.particleParameters.gravityAccelerationFactor = fullGravityAcceleration;
+        } else {
+            particleManager.particleParameters.gravityAccelerationFactor = 0.0f;
+        }
+
+        stringstream debugText;
+        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " particles "
+                  << " | " << lastAverageFrameTime << " per frame average | " << lastFramerate << " FPS average over " << framesPerSample
+                  << " frames "
+                  << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord
+                  << " | simulationSpeed: " << particleManager.particleParameters.simulationSpeed
+                  << " | gravityFactor: " << particleManager.particleParameters.gravityAccelerationFactor;
+        SDL_SetWindowTitle(window, debugText.str().c_str());
 
         TextureManager::Update();
 

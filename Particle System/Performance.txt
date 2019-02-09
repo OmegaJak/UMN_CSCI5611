@@ -2,3 +2,5 @@ No effort put into optimization (using spheres, non-batched draw calls, no paral
 - about twice as many if using cubes
 
 After moving to compute shader, using GL_POINTS: >=8.3 Million @ 60FPS
+- Downside: The CPU sets up the initial state (position, velocities, colors), so loading takes ~10-15 seconds (this was much less with only 1 million particles)
+- Finally dropped to ~30 FPS with ~32 million particles

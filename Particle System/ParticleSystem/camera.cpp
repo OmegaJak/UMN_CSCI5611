@@ -10,7 +10,7 @@
 #include "gtx/rotate_vector.hpp"
 
 Camera::Camera() {
-    _position = glm::vec3(0, 0, 1);
+    _position = glm::vec3(-50, 50, 50);
     _forward = glm::vec3(1, 0, 0);
     _worldUp = _up = glm::vec3(0, 0, 1);
 
@@ -54,9 +54,9 @@ void Camera::ProcessKeyboardInput() {
 
     // Look right/left
     if (key_state[SDL_SCANCODE_RIGHT]) {
-        _yaw += rotateSpeed;
-    } else if (key_state[SDL_SCANCODE_LEFT]) {
         _yaw -= rotateSpeed;
+    } else if (key_state[SDL_SCANCODE_LEFT]) {
+        _yaw += rotateSpeed;
     }
 
     // Forward/back
@@ -87,14 +87,25 @@ glm::vec3 Camera::GetPosition() {
     return _position;
 }
 
+glm::vec3 Camera::GetMousePosition(float normalizedMouseX, float normalizedMouseY, const glm::mat4& proj, float distanceFromCamera) {
+    glm::mat4 invVP = glm::inverse(proj * _view);
+    glm::vec4 screenPos = glm::vec4(normalizedMouseX, -normalizedMouseY, 1.0f, 1.0f);
+    glm::vec4 worldPos = invVP * screenPos;
+
+    glm::vec3 direction = glm::normalize(glm::vec3(worldPos));
+    glm::vec3 mousePosition = _position + distanceFromCamera * direction;
+
+    return mousePosition;
+}
+
 glm::vec3 Camera::GetForward() {
     return _forward;
 }
 
 void Camera::Update() {
     ProcessKeyboardInput();
-    glm::mat4 view = glm::lookAt(_position, _position + _forward, _up);
-    glUniformMatrix4fv(ShaderManager::Attributes.view, 1, GL_FALSE, glm::value_ptr(view));
+    _view = glm::lookAt(_position, _position + _forward, _up);
+    glUniformMatrix4fv(ShaderManager::Attributes.view, 1, GL_FALSE, glm::value_ptr(_view));
 }
 
 void Camera::UpdateCameraVectors() {

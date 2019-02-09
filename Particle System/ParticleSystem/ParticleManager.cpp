@@ -25,13 +25,10 @@ struct color {
     float r, g, b, a;
 };
 
-struct particleParams {
-    GLfloat centerX, centerY, centerZ;
-};
-
 ParticleManager::ParticleManager() {
     _particleModel = new Model("models/sphere.txt");
     srand(time(NULL));
+    particleParameters = particleParams{50.f, 50.f, 50.f, 1.0f, 0.0f};
     InitGL();
 }
 
@@ -51,7 +48,7 @@ void ParticleManager::InitGL() {
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // Prepare the velocities buffer
-    glGenBuffers(2, &velSSbo);
+    glGenBuffers(1, &velSSbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, velSSbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(vel), NULL, GL_STATIC_DRAW);
 
@@ -65,7 +62,7 @@ void ParticleManager::InitGL() {
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // Prepare the colors buffer
-    glGenBuffers(3, &colSSbo);
+    glGenBuffers(1, &colSSbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, colSSbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(color), NULL, GL_STATIC_DRAW);
 
@@ -79,14 +76,14 @@ void ParticleManager::InitGL() {
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // Misc data
-    glGenBuffers(4, &paramSSbo);
+    glGenBuffers(1, &paramSSbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(color), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(particleParams), NULL, GL_STATIC_DRAW);
 
-    particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(params), bufMask);
-    params->centerX = 0;
-    params->centerY = 0;
-    params->centerZ = 0;
+    particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
+    params->centerX = particleParameters.centerX;
+    params->centerY = particleParameters.centerY;
+    params->centerZ = particleParameters.centerZ;
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
@@ -96,16 +93,9 @@ int ParticleManager::GetNumParticles() {
 }
 
 void ParticleManager::RenderParticles(float dt) {
-    static float theta = 0;
-    static const float radius = 100;
-
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
-    particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(params), bufMask);
-    theta += (M_PI / 2.0) * dt;
-    params->centerX = radius * cos(theta);
-    params->centerY += radius * sin(theta);
-    params->centerZ += 0;
-
+    particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
+    *params = particleParameters;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, posSSbo);
