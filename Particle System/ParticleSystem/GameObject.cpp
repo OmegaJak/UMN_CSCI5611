@@ -1,5 +1,6 @@
 #define GLM_FORCE_RADIANS
 #include <gtc/type_ptr.hpp>
+#include "Constants.h"
 #include "GameObject.h"
 #include "ShaderManager.h"
 #include "glad.h"
@@ -22,6 +23,9 @@ void GameObject::Update() {
         printf("GameObject must be given a valid model before calling Update()\n");
         exit(1);
     }
+
+    glVertexAttribPointer(ShaderManager::Attributes.position, VALUES_PER_POSITION, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
+                          POSITION_OFFSET);
 
     glUniformMatrix4fv(ShaderManager::Attributes.model, 1, GL_FALSE, glm::value_ptr(transform_));  // pass model matrix to shader
     glUniform1i(ShaderManager::Attributes.texID, texture_index_);                                  // Set which texture to use

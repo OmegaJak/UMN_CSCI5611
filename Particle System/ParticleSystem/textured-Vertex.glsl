@@ -1,7 +1,7 @@
 #version 150 core
 
 in vec3 position;
-//in vec3 inColor;
+in vec3 inColor;
 
 //const vec3 inColor = vec3(0.f,0.7f,0.f);
 const vec3 inLightDir = normalize(vec3(-1,1,-1));
@@ -17,7 +17,7 @@ out vec2 texcoord;
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 proj;
-uniform vec3 inColor;
+//uniform vec3 inColor;
 
 void main() {
    Color = inColor;

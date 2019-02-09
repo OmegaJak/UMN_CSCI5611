@@ -1,27 +1,27 @@
 #pragma once
-#include <detail/type_vec3.hpp>
-#include <vector>
 #include "Model.h"
+#include "glad.h"
 
 class ParticleManager {
    public:
     ParticleManager();
 
-    void MoveParticles(float dt);
-    void SpawnParticle(const glm::vec3& position, const glm::vec3& velocity);
-    void SpawnParticles(float dt);
-    void RenderParticles();
-    int GetNumParticles() const;
-
-    std::vector<glm::vec3> Positions;
-    std::vector<glm::vec3> Velocities;
-    std::vector<float> Lifetimes;
+    void RenderParticles(float dt);
+    void InitGL();
+    int GetNumParticles();
 
     float genRate = 1000;
 
+    static const int NUM_PARTICLES = 8 * 1024 * 1024;
+    static const int WORK_GROUP_SIZE = 128;
+
+    GLuint posSSbo;
+    GLuint velSSbo;
+    GLuint colSSbo;
+    GLuint paramSSbo;
+
    private:
-    void DeleteParticle(int index);
-    static float rand01();
+    static float randBetween(int min, int max);
 
     Model* _particleModel;
 };

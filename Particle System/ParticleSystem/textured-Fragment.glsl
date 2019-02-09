@@ -37,5 +37,7 @@ void main() {
   if (texID > -1) specFactor = 0.1;
   vec3 specC = specFactor*vec3(1.0,1.0,1.0)*pow(spec,4);
   vec3 oColor = ambC+diffuseC+specC;
-  outColor = vec4(oColor,1);
+  //outColor = vec4(oColor,1);
+
+  outColor = vec4(Color, 0.7);
 }
