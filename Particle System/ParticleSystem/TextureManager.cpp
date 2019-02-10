@@ -1,18 +1,22 @@
 #include <SDL.h>
 #include <cstdio>
-#include "glad.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
+#include "glad.h"
 
 void TextureManager::InitTextures() {
+    glBindVertexArray(ShaderManager::Environment_VAO);
+
     // Allocate Texture 0
     InitTexture(&tex0, "stone_floor.bmp");
+
+    glBindVertexArray(0);
 }
 
 void TextureManager::Update() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
-    glUniform1i(glGetUniformLocation(ShaderManager::Textured_Shader, "tex0"), 0);
+    glUniform1i(glGetUniformLocation(ShaderManager::Environment_Render_Shader, "tex0"), 0);
 }
 
 void TextureManager::InitTexture(GLuint* tex_location, const char* file) {

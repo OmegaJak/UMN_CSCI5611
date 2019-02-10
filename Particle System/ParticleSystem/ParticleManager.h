@@ -10,6 +10,18 @@ struct particleParams {
     GLfloat gravityAccelerationFactor;
 };
 
+struct position {
+    GLfloat x, y, z, w;
+};
+
+struct velocity {
+    GLfloat vx, vy, vz, vw;
+};
+
+struct color {
+    float r, g, b, a;
+};
+
 class ParticleManager {
    public:
     ParticleManager();
@@ -23,10 +35,10 @@ class ParticleManager {
     static const int NUM_PARTICLES = 2 * 1024 * 1024;
     static const int WORK_GROUP_SIZE = 128;
 
-    GLuint posSSbo;
-    GLuint velSSbo;
-    GLuint colSSbo;
-    GLuint paramSSbo;
+    static GLuint posSSbo;
+    static GLuint velSSbo;
+    static GLuint colSSbo;
+    static GLuint paramSSbo;
 
     particleParams particleParameters;
 

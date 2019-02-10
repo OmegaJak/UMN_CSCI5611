@@ -24,14 +24,14 @@ void GameObject::Update() {
         exit(1);
     }
 
-    glVertexAttribPointer(ShaderManager::Attributes.position, VALUES_PER_POSITION, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
-                          POSITION_OFFSET);
+    /*glVertexAttribPointer(ShaderManager::EnvironmentAttributes.position, VALUES_PER_POSITION, GL_FLOAT, GL_FALSE,
+                          ATTRIBUTE_STRIDE * sizeof(float), POSITION_OFFSET);*/
 
-    glUniformMatrix4fv(ShaderManager::Attributes.model, 1, GL_FALSE, glm::value_ptr(transform_));  // pass model matrix to shader
-    glUniform1i(ShaderManager::Attributes.texID, texture_index_);                                  // Set which texture to use
-    // if (texture_index_ == UNTEXTURED) {
-    //    glUniform3fv(ShaderManager::Attributes.color, 1, glm::value_ptr(material_.color_));  // Update the color, if necessary
-    //}
+    glUniformMatrix4fv(ShaderManager::EnvironmentAttributes.model, 1, GL_FALSE, glm::value_ptr(transform_));  // pass model matrix to shader
+    glUniform1i(ShaderManager::EnvironmentAttributes.texID, texture_index_);                                  // Set which texture to use
+    if (texture_index_ == UNTEXTURED) {
+        glUniform3fv(ShaderManager::EnvironmentAttributes.color, 1, glm::value_ptr(material_.color_));  // Update the color, if necessary
+    }
 
     glDrawArrays(GL_TRIANGLES, model_->vbo_vertex_start_index_, model_->NumVerts());
 }

@@ -104,8 +104,12 @@ glm::vec3 Camera::GetForward() {
 
 void Camera::Update() {
     ProcessKeyboardInput();
-    _view = glm::lookAt(_position, _position + _forward, _up);
-    glUniformMatrix4fv(ShaderManager::Attributes.view, 1, GL_FALSE, glm::value_ptr(_view));
+    auto view = glm::lookAt(_position, _position + _forward, _up);
+    _view = view;
+
+    ShaderManager::ApplyToEachRenderShader(
+        [view](ShaderAttributes attributes) -> void { glUniformMatrix4fv(attributes.view, 1, GL_FALSE, glm::value_ptr(view)); },
+        VIEW_SHADER_FUNCTION_ID);
 }
 
 void Camera::UpdateCameraVectors() {

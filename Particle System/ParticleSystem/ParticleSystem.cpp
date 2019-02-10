@@ -4,8 +4,10 @@
 
 #define GLM_FORCE_RADIANS
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include "Camera.h"
+#include "Constants.h"
 #include "Environment.h"
 #include "GameObject.h"
 #include "ParticleManager.h"
@@ -69,6 +71,86 @@ std::ostream& operator<<(std::ostream& out, glm::vec3 const& vec) {
     return out;
 }
 
+// https://learnopengl.com/In-Practice/Debugging
+void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
+                              const void* userParam) {
+    // ignore non-significant error/warning codes
+    if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+
+    std::cout << "---------------" << std::endl;
+    std::cout << "Debug message (" << id << "): " << message << std::endl;
+
+    switch (source) {
+        case GL_DEBUG_SOURCE_API:
+            std::cout << "Source: API";
+            break;
+        case GL_DEBUG_SOURCE_WINDOW_SYSTEM:
+            std::cout << "Source: Window System";
+            break;
+        case GL_DEBUG_SOURCE_SHADER_COMPILER:
+            std::cout << "Source: Shader Compiler";
+            break;
+        case GL_DEBUG_SOURCE_THIRD_PARTY:
+            std::cout << "Source: Third Party";
+            break;
+        case GL_DEBUG_SOURCE_APPLICATION:
+            std::cout << "Source: Application";
+            break;
+        case GL_DEBUG_SOURCE_OTHER:
+            std::cout << "Source: Other";
+            break;
+    }
+    std::cout << std::endl;
+
+    switch (type) {
+        case GL_DEBUG_TYPE_ERROR:
+            std::cout << "Type: Error";
+            break;
+        case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+            std::cout << "Type: Deprecated Behaviour";
+            break;
+        case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+            std::cout << "Type: Undefined Behaviour";
+            break;
+        case GL_DEBUG_TYPE_PORTABILITY:
+            std::cout << "Type: Portability";
+            break;
+        case GL_DEBUG_TYPE_PERFORMANCE:
+            std::cout << "Type: Performance";
+            break;
+        case GL_DEBUG_TYPE_MARKER:
+            std::cout << "Type: Marker";
+            break;
+        case GL_DEBUG_TYPE_PUSH_GROUP:
+            std::cout << "Type: Push Group";
+            break;
+        case GL_DEBUG_TYPE_POP_GROUP:
+            std::cout << "Type: Pop Group";
+            break;
+        case GL_DEBUG_TYPE_OTHER:
+            std::cout << "Type: Other";
+            break;
+    }
+    std::cout << std::endl;
+
+    switch (severity) {
+        case GL_DEBUG_SEVERITY_HIGH:
+            std::cout << "Severity: high";
+            break;
+        case GL_DEBUG_SEVERITY_MEDIUM:
+            std::cout << "Severity: medium";
+            break;
+        case GL_DEBUG_SEVERITY_LOW:
+            std::cout << "Severity: low";
+            break;
+        case GL_DEBUG_SEVERITY_NOTIFICATION:
+            std::cout << "Severity: notification";
+            break;
+    }
+    std::cout << std::endl;
+    std::cout << std::endl;
+}
+
 int main(int argc, char* argv[]) {
     SDL_Init(SDL_INIT_VIDEO);  // Initialize Graphics (for OpenGL)
 
@@ -77,6 +159,7 @@ int main(int argc, char* argv[]) {
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
 
     // Create a window (offsetx, offsety, width, height, flags)
     SDL_Window* window = SDL_CreateWindow("My OpenGL Program", 100, 100, screenWidth, screenHeight, SDL_WINDOW_OPENGL);
@@ -103,6 +186,17 @@ int main(int argc, char* argv[]) {
         return -1;
     }
 
+    // OpenGL debug
+    // https://learnopengl.com/In-Practice/Debugging
+    GLint flags;
+    glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+    if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+        glEnable(GL_DEBUG_OUTPUT);
+        glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+        glDebugMessageCallback(glDebugOutput, nullptr);
+        glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+    }
+
     SDL_GL_SetSwapInterval(1);
 
     Camera camera = Camera();
@@ -111,21 +205,11 @@ int main(int argc, char* argv[]) {
 
     ParticleManager particleManager = ParticleManager();
 
-    // Load the textures
-    TextureManager::InitTextures();
-
-    // Build a Vertex Array Object (VAO) to store mapping of shader attributes to VBO
-    GLuint vao;
-    glGenVertexArrays(1, &vao);  // Create a VAO
-    glBindVertexArray(vao);      // Bind the above created VAO to the current context
-
     ModelManager::InitVBO();
 
-    ShaderManager::InitShaders("textured-Vertex.glsl", "textured-Fragment.glsl", "computeShader.glsl");
+    ShaderManager::InitShaders();
 
     TextureManager::InitTextures();
-
-    glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
 
     glEnable(GL_DEPTH_TEST);
 
@@ -211,8 +295,8 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, particleManager.colSSbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
 
-        glUseProgram(ShaderManager::Compute_Shader);
-        glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);
+        glUseProgram(ShaderManager::Particle_Compute_Shader);
+        glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
@@ -221,11 +305,8 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
 
         // Rendering //
-        // Clear the screen to default color
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Clear the screen to default color
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glUseProgram(ShaderManager::Textured_Shader);
 
         float deltaTime = (SDL_GetTicks() / 1000.0f) - lastTickTime;
         lastTickTime = SDL_GetTicks() / 1000.0f;
@@ -235,18 +316,16 @@ int main(int argc, char* argv[]) {
         if (frameCounter >= framesPerSample) {
             lastAverageFrameTime = std::to_string((lastFramesTimer * 1000.0f) / framesPerSample) + "ms";
             lastFramerate = 1.0f / (lastFramesTimer / framesPerSample);
-            /*printf("Time for the last %i frames: %f ms, average time per frame: %s\n", framesPerSample, lastFramesTimer * 1000.0,
-                   lastAverageFrameTime.c_str());*/
 
             frameCounter = 0;
             lastFramesTimer = 0;
         }
 
-        // particleManager.SpawnParticles(deltaTime);
-        // particleManager.MoveParticles(deltaTime);
         camera.Update();
         glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.1f, 10000.0f);  // FOV, aspect, near, far
-        glUniformMatrix4fv(ShaderManager::Attributes.projection, 1, GL_FALSE, glm::value_ptr(proj));
+        ShaderManager::ApplyToEachRenderShader(
+            [proj](ShaderAttributes attributes) -> void { glUniformMatrix4fv(attributes.projection, 1, GL_FALSE, glm::value_ptr(proj)); },
+            PROJ_SHADER_FUNCTION_ID);
 
         if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
             lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, 100);
@@ -267,12 +346,13 @@ int main(int argc, char* argv[]) {
                   << " | gravityFactor: " << particleManager.particleParameters.gravityAccelerationFactor;
         SDL_SetWindowTitle(window, debugText.str().c_str());
 
+        // Render the environment
+        ShaderManager::ActivateShader(ShaderManager::Environment_Render_Shader);
         TextureManager::Update();
+        environment.UpdateAll();
 
-        glBindVertexArray(vao);
-
-        // environment.UpdateAll();
         // Render particles!!
+        ShaderManager::ActivateShader(ShaderManager::Particle_Render_Shader);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering
@@ -281,7 +361,6 @@ int main(int argc, char* argv[]) {
     // Clean Up
     ShaderManager::Cleanup();
     ModelManager::Cleanup();
-    glDeleteVertexArrays(1, &vao);
 
     SDL_GL_DeleteContext(context);
     SDL_Quit();

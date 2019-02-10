@@ -1,6 +1,7 @@
 #pragma once
 
 const bool DEBUG_ON = true;
+const int NUM_RENDER_SHADERS = 2;
 const int ELEMENTS_PER_VERT = 8;
 
 const int ATTRIBUTE_STRIDE = ELEMENTS_PER_VERT;
@@ -19,3 +20,6 @@ const float CAMERA_MOVE_SPEED = 1.f;
 const float MAX_MOVE_SPEED = 10.0f * CAMERA_MOVE_SPEED;
 
 const float ABSOLUTE_TOLERANCE = 0.00001f;
+
+const int VIEW_SHADER_FUNCTION_ID = 1;
+const int PROJ_SHADER_FUNCTION_ID = 2;
