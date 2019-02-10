@@ -24,9 +24,6 @@ void GameObject::Update() {
         exit(1);
     }
 
-    /*glVertexAttribPointer(ShaderManager::EnvironmentAttributes.position, VALUES_PER_POSITION, GL_FLOAT, GL_FALSE,
-                          ATTRIBUTE_STRIDE * sizeof(float), POSITION_OFFSET);*/
-
     glUniformMatrix4fv(ShaderManager::EnvironmentShader.Attributes.model, 1, GL_FALSE,
                        glm::value_ptr(transform_));                                  // pass model matrix to shader
     glUniform1i(ShaderManager::EnvironmentShader.Attributes.texID, texture_index_);  // Set which texture to use
@@ -40,4 +37,14 @@ void GameObject::Update() {
 
 void GameObject::SetPosition(const glm::vec3& position) {
     transform_[3] = glm::vec4(position, transform_[3][3]);
+}
+
+void GameObject::SetScale(float x, float y, float z) {
+    transform_[0][0] = x;
+    transform_[1][1] = y;
+    transform_[2][2] = z;
+}
+
+void GameObject::SetColor(const glm::vec3& color) {
+    material_.color_ = color;
 }

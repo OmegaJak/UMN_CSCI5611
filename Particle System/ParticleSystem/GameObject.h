@@ -12,6 +12,8 @@ class GameObject {
     virtual ~GameObject();
 
     void SetPosition(const glm::vec3& position);
+    void SetScale(float x, float y, float z);
+    void SetColor(const glm::vec3& color);
     void SetTextureIndex(TEXTURE texture_index);
 
     void Update();

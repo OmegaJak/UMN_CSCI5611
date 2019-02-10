@@ -228,6 +228,7 @@ int main(int argc, char* argv[]) {
     float normalizedMouseX, normalizedMouseY;
     glm::vec3 lastMouseWorldCoord;
     float fullGravityAcceleration = 1.0f;
+    float gravityCenterDistance = 10;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -242,6 +243,7 @@ int main(int argc, char* argv[]) {
                 } else if (windowEvent.key.keysym.sym == SDLK_EQUALS || windowEvent.key.keysym.sym == SDLK_MINUS) {
                     float modAmount = 0.1;
                     if (windowEvent.key.keysym.mod & KMOD_CTRL) modAmount *= 10;
+                    if (windowEvent.key.keysym.mod & KMOD_ALT) modAmount *= 10;
                     if (windowEvent.key.keysym.mod & KMOD_SHIFT) modAmount *= 2;
 
                     if (windowEvent.key.keysym.sym == SDLK_MINUS) modAmount *= -1;
@@ -249,6 +251,8 @@ int main(int argc, char* argv[]) {
                     if (windowEvent.key.keysym.mod & KMOD_CTRL) {
                         fullGravityAcceleration += modAmount;
                         particleManager.particleParameters.gravityAccelerationFactor = fullGravityAcceleration;
+                    } else if (windowEvent.key.keysym.mod & KMOD_ALT) {
+                        gravityCenterDistance += modAmount;
                     } else {
                         particleManager.particleParameters.simulationSpeed += modAmount;
                     }
@@ -328,7 +332,8 @@ int main(int argc, char* argv[]) {
             PROJ_SHADER_FUNCTION_ID);
 
         if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
-            lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, 100);
+            lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, gravityCenterDistance);
+            environment.SetGravityCenterPosition(lastMouseWorldCoord);
             particleManager.particleParameters.centerX = lastMouseWorldCoord.x;
             particleManager.particleParameters.centerY = lastMouseWorldCoord.y;
             particleManager.particleParameters.centerZ = lastMouseWorldCoord.z;
