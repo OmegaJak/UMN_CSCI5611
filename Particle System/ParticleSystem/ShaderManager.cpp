@@ -2,60 +2,36 @@
 #include "ParticleManager.h"
 #include "ShaderManager.h"
 
-GLuint ShaderManager::Environment_Render_Shader;
-GLuint ShaderManager::Particle_Compute_Shader;
-GLuint ShaderManager::Particle_Render_Shader;
-
-ShaderAttributes ShaderManager::EnvironmentAttributes;
-ShaderAttributes ShaderManager::ParticleAttributes;
-ShaderAttributes ShaderManager::RenderAttributes[NUM_RENDER_SHADERS];
-
-GLuint ShaderManager::Environment_VAO;
-GLuint ShaderManager::Particle_VAO;
+GLuint ShaderManager::ParticleComputeShader;
+RenderShader ShaderManager::EnvironmentShader;
+RenderShader ShaderManager::ParticleShader;
 
 std::map<int, std::function<void(ShaderAttributes)>> ShaderManager::ShaderFunctions;
 
 void ShaderManager::InitShaders() {
-    Environment_Render_Shader = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
-    Particle_Render_Shader = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
-    Particle_Compute_Shader = CompileComputerShaderProgram("computeShader.glsl");
+    EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
+    ParticleShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
+    ParticleComputeShader = CompileComputeShaderProgram("computeShader.glsl");
 
     InitEnvironmentShaderAttributes();
     InitParticleShaderAttributes();
-
-    RenderAttributes[0] = EnvironmentAttributes;
-    RenderAttributes[1] = ParticleAttributes;
 }
 
 void ShaderManager::Cleanup() {
-    glDeleteProgram(Environment_Render_Shader);
-    glDeleteProgram(Particle_Render_Shader);
-    glDeleteProgram(Particle_Compute_Shader);
+    glDeleteProgram(EnvironmentShader.Program);
+    glDeleteProgram(ParticleComputeShader);
+    glDeleteProgram(ParticleShader.Program);
 
-    glDeleteVertexArrays(1, &Environment_VAO);
-    glDeleteVertexArrays(1, &Particle_VAO);
+    glDeleteVertexArrays(1, &EnvironmentShader.VAO);
+    glDeleteVertexArrays(1, &ParticleShader.VAO);
 }
 
-void ShaderManager::ActivateShader(GLuint shader_program) {
-    glUseProgram(shader_program);
-
-    ShaderAttributes* attributes;
-    GLuint vao;
-    if (shader_program == Environment_Render_Shader) {
-        attributes = &EnvironmentAttributes;
-        vao = Environment_VAO;
-    } else if (shader_program == Particle_Render_Shader) {
-        attributes = &ParticleAttributes;
-        vao = Particle_VAO;
-    } else {
-        printf("No corresponding attributes found for shader program that was activated");
-        return;
-    }
-
-    glBindVertexArray(vao);
+void ShaderManager::ActivateShader(RenderShader shader) {
+    glUseProgram(shader.Program);
+    glBindVertexArray(shader.VAO);
 
     for (const auto& func : ShaderFunctions) {
-        func.second(*attributes);  // absolutely ridiculous
+        func.second(shader.Attributes);  // absolutely ridiculous
     }
 }
 
@@ -66,69 +42,70 @@ void ShaderManager::ApplyToEachRenderShader(std::function<void(ShaderAttributes)
 // Tell OpenGL how to set fragment shader input
 void ShaderManager::InitEnvironmentShaderAttributes() {
     // First build a Vertex Array Object (VAO) to store mapping of shader attributes to VBO
-    glGenVertexArrays(1, &Environment_VAO);  // Create a VAO
-    glBindVertexArray(Environment_VAO);      // Bind the above created VAO to the current context
+    glGenVertexArrays(1, &EnvironmentShader.VAO);  // Create a VAO
+    glBindVertexArray(EnvironmentShader.VAO);      // Bind the above created VAO to the current context
 
-    GLint posAttrib = glGetAttribLocation(Environment_Render_Shader, "position");
+    GLint posAttrib = glGetAttribLocation(EnvironmentShader.Program, "position");
     glVertexAttribPointer(posAttrib, VALUES_PER_POSITION, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float), POSITION_OFFSET);
     // Attribute, vals/attrib., type, isNormalized, stride, offset
     glEnableVertexAttribArray(posAttrib);
 
-    GLint normAttrib = glGetAttribLocation(Environment_Render_Shader, "inNormal");
+    GLint normAttrib = glGetAttribLocation(EnvironmentShader.Program, "inNormal");
     glVertexAttribPointer(normAttrib, VALUES_PER_NORMAL, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
                           (void*)(NORMAL_OFFSET * sizeof(float)));
     glEnableVertexAttribArray(normAttrib);
 
-    GLint texAttrib = glGetAttribLocation(Environment_Render_Shader, "inTexcoord");
+    GLint texAttrib = glGetAttribLocation(EnvironmentShader.Program, "inTexcoord");
     glEnableVertexAttribArray(texAttrib);
     glVertexAttribPointer(texAttrib, VALUES_PER_TEXCOORD, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
                           (void*)(TEXCOORD_OFFSET * sizeof(float)));
 
-    // GLint colAttrib = glGetAttribLocation(Environment_Render_Shader, "inColor");
-    GLint uniColor = glGetUniformLocation(Environment_Render_Shader, "inColor");
-    GLint uniTexID = glGetUniformLocation(Environment_Render_Shader, "texID");
-    GLint uniView = glGetUniformLocation(Environment_Render_Shader, "view");
-    GLint uniProj = glGetUniformLocation(Environment_Render_Shader, "proj");
-    GLint uniModel = glGetUniformLocation(Environment_Render_Shader, "model");
+    // GLint colAttrib = glGetAttribLocation(EnvironmentShader.Program, "inColor");
+    GLint uniColor = glGetUniformLocation(EnvironmentShader.Program, "inColor");
+    GLint uniTexID = glGetUniformLocation(EnvironmentShader.Program, "texID");
+    GLint uniView = glGetUniformLocation(EnvironmentShader.Program, "view");
+    GLint uniProj = glGetUniformLocation(EnvironmentShader.Program, "proj");
+    GLint uniModel = glGetUniformLocation(EnvironmentShader.Program, "model");
 
-    EnvironmentAttributes.position = posAttrib;
-    EnvironmentAttributes.normals = normAttrib;
-    EnvironmentAttributes.texCoord = texAttrib;
-    EnvironmentAttributes.color = uniColor;
-    EnvironmentAttributes.texID = uniTexID;
-    EnvironmentAttributes.view = uniView;
-    EnvironmentAttributes.projection = uniProj;
-    EnvironmentAttributes.model = uniModel;
+    EnvironmentShader.Attributes.position = posAttrib;
+    EnvironmentShader.Attributes.normals = normAttrib;
+    EnvironmentShader.Attributes.texCoord = texAttrib;
+    EnvironmentShader.Attributes.color = uniColor;
+    EnvironmentShader.Attributes.texID = uniTexID;
+    EnvironmentShader.Attributes.view = uniView;
+    EnvironmentShader.Attributes.projection = uniProj;
+    EnvironmentShader.Attributes.model = uniModel;
 
     glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
 }
 
 void ShaderManager::InitParticleShaderAttributes() {
-    glGenVertexArrays(1, &Particle_VAO);
-    glBindVertexArray(Particle_VAO);
+    glGenVertexArrays(1, &ParticleShader.VAO);
+    glBindVertexArray(ParticleShader.VAO);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ParticleManager::posSSbo);
     glBindBuffer(GL_ARRAY_BUFFER, ParticleManager::posSSbo);
-    GLint posAttrib = glGetAttribLocation(Particle_Render_Shader, "position");
+    GLint posAttrib = glGetAttribLocation(ParticleShader.Program, "position");
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(position), (void*)0);
     glEnableVertexAttribArray(posAttrib);
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ParticleManager::colSSbo);
     glBindBuffer(GL_ARRAY_BUFFER, ParticleManager::colSSbo);
-    GLint colAttrib = glGetAttribLocation(Particle_Render_Shader, "inColor");
+    GLint colAttrib = glGetAttribLocation(ParticleShader.Program, "inColor");
     glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(color), (void*)0);
     glEnableVertexAttribArray(colAttrib);
 
-    GLint uniView = glGetUniformLocation(Particle_Render_Shader, "view");
-    GLint uniProj = glGetUniformLocation(Particle_Render_Shader, "proj");
+    GLint uniView = glGetUniformLocation(ParticleShader.Program, "view");
+    GLint uniProj = glGetUniformLocation(ParticleShader.Program, "proj");
 
-    ParticleAttributes.position = posAttrib;
-    ParticleAttributes.color = colAttrib;
-    ParticleAttributes.view = uniView;
-    ParticleAttributes.projection = uniProj;
+    ParticleShader.Attributes.position = posAttrib;
+    ParticleShader.Attributes.color = colAttrib;
+    ParticleShader.Attributes.view = uniView;
+    ParticleShader.Attributes.projection = uniProj;
 
     // Make it obvious that these values aren't used
-    ParticleAttributes.normals = ParticleAttributes.texCoord = ParticleAttributes.texID = ParticleAttributes.model = -1;
+    ParticleShader.Attributes.normals = ParticleShader.Attributes.texCoord = ParticleShader.Attributes.texID =
+        ParticleShader.Attributes.model = -1;
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -208,7 +185,7 @@ GLuint ShaderManager::CompileRenderShader(const std::string& vertex_shader_file,
     return program;
 }
 
-GLuint ShaderManager::CompileComputerShaderProgram(const std::string& compute_shader_file) {
+GLuint ShaderManager::CompileComputeShaderProgram(const std::string& compute_shader_file) {
     GLuint compute_shader;
     GLchar* vs_text;
     GLuint computeProgram;

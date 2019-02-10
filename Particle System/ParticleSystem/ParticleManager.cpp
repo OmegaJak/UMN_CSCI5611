@@ -89,7 +89,7 @@ void ParticleManager::RenderParticles(float dt) {
     *params = particleParameters;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
-    glUseProgram(ShaderManager::Particle_Render_Shader);
+    glUseProgram(ShaderManager::ParticleShader.Program);
 
     glDrawArrays(GL_POINTS, 0, NUM_PARTICLES);
 

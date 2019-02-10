@@ -5,7 +5,7 @@
 #include "glad.h"
 
 void TextureManager::InitTextures() {
-    glBindVertexArray(ShaderManager::Environment_VAO);
+    glBindVertexArray(ShaderManager::EnvironmentShader.VAO);
 
     // Allocate Texture 0
     InitTexture(&tex0, "stone_floor.bmp");
@@ -16,7 +16,7 @@ void TextureManager::InitTextures() {
 void TextureManager::Update() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
-    glUniform1i(glGetUniformLocation(ShaderManager::Environment_Render_Shader, "tex0"), 0);
+    glUniform1i(glGetUniformLocation(ShaderManager::EnvironmentShader.Program, "tex0"), 0);
 }
 
 void TextureManager::InitTexture(GLuint* tex_location, const char* file) {

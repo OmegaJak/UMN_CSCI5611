@@ -295,7 +295,7 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, particleManager.colSSbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
 
-        glUseProgram(ShaderManager::Particle_Compute_Shader);
+        glUseProgram(ShaderManager::ParticleComputeShader);
         glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
 
@@ -347,12 +347,12 @@ int main(int argc, char* argv[]) {
         SDL_SetWindowTitle(window, debugText.str().c_str());
 
         // Render the environment
-        ShaderManager::ActivateShader(ShaderManager::Environment_Render_Shader);
+        ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
         TextureManager::Update();
         environment.UpdateAll();
 
         // Render particles!!
-        ShaderManager::ActivateShader(ShaderManager::Particle_Render_Shader);
+        ShaderManager::ActivateShader(ShaderManager::ParticleShader);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering

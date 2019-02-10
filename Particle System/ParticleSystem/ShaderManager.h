@@ -15,29 +15,28 @@ typedef struct {
     GLint texID;
 } ShaderAttributes;
 
+typedef struct {
+    GLuint Program;
+    ShaderAttributes Attributes;
+    GLuint VAO;
+} RenderShader;
+
 class ShaderManager {
    public:
     static void InitShaders();
     static void Cleanup();
-    static void ActivateShader(GLuint shader_program);
+    static void ActivateShader(RenderShader shader);
     static void ApplyToEachRenderShader(std::function<void(ShaderAttributes)> Func, int shaderFunctionId);
 
-    static GLuint Environment_Render_Shader;
-    static GLuint Particle_Compute_Shader;
-    static GLuint Particle_Render_Shader;
-
-    static ShaderAttributes EnvironmentAttributes;
-    static ShaderAttributes ParticleAttributes;
-    static ShaderAttributes RenderAttributes[];
-
-    static GLuint Environment_VAO;
-    static GLuint Particle_VAO;
+    static RenderShader EnvironmentShader;
+    static RenderShader ParticleShader;
+    static GLuint ParticleComputeShader;
 
    private:
     static void InitEnvironmentShaderAttributes();
     static void InitParticleShaderAttributes();
     static GLuint CompileRenderShader(const std::string& vertex_shader_file, const std::string& fragment_shader_file);
-    static GLuint CompileComputerShaderProgram(const std::string& compute_shader_file);
+    static GLuint CompileComputeShaderProgram(const std::string& compute_shader_file);
     static char* ReadShaderSource(const char* shaderFile);
     static void VerifyShaderCompiled(GLuint shader);
 
