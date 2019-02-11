@@ -8,6 +8,8 @@ struct particleParams {
     GLfloat maxX, maxY, maxZ;
     GLfloat simulationSpeed;
     GLfloat gravityAccelerationFactor;
+    GLfloat spawnRate;
+    GLfloat time;
 };
 
 struct position {
@@ -20,6 +22,10 @@ struct velocity {
 
 struct color {
     float r, g, b, a;
+};
+
+struct atomics {
+    GLint numDead;
 };
 
 class ParticleManager {
@@ -38,7 +44,9 @@ class ParticleManager {
     static GLuint posSSbo;
     static GLuint velSSbo;
     static GLuint colSSbo;
+    static GLuint lifeSSbo;
     static GLuint paramSSbo;
+    static GLuint atomicsSSbo;
 
     particleParams particleParameters;
 

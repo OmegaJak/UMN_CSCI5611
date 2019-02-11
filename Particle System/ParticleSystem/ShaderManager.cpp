@@ -92,7 +92,7 @@ void ShaderManager::InitParticleShaderAttributes() {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ParticleManager::colSSbo);
     glBindBuffer(GL_ARRAY_BUFFER, ParticleManager::colSSbo);
     GLint colAttrib = glGetAttribLocation(ParticleShader.Program, "inColor");
-    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(color), (void*)0);
+    glVertexAttribPointer(colAttrib, 4, GL_FLOAT, GL_FALSE, sizeof(color), (void*)0);
     glEnableVertexAttribArray(colAttrib);
 
     GLint uniView = glGetUniformLocation(ParticleShader.Program, "view");

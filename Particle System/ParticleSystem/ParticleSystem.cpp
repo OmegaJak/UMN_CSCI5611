@@ -212,6 +212,10 @@ int main(int argc, char* argv[]) {
     TextureManager::InitTextures();
 
     glEnable(GL_DEPTH_TEST);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_BLEND);
+    glEnable(GL_PROGRAM_POINT_SIZE);
+    glDisable(GL_CULL_FACE);
 
     printf("%s\n", INSTRUCTIONS);
 
@@ -293,27 +297,11 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        // Particles compute shader //
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, particleManager.posSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, particleManager.velSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, particleManager.colSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
+        auto time = SDL_GetTicks() / 1000.0f;
+        float deltaTime = time - lastTickTime;
+        lastTickTime = time;
 
-        glUseProgram(ShaderManager::ParticleComputeShader);
-        glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
-
-        // Rendering //
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Clear the screen to default color
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        float deltaTime = (SDL_GetTicks() / 1000.0f) - lastTickTime;
-        lastTickTime = SDL_GetTicks() / 1000.0f;
+        particleManager.particleParameters.time = time;
 
         frameCounter++;
         lastFramesTimer += deltaTime;
@@ -324,6 +312,29 @@ int main(int argc, char* argv[]) {
             frameCounter = 0;
             lastFramesTimer = 0;
         }
+
+        // Particles compute shader //
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, particleManager.posSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, particleManager.velSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, particleManager.colSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, particleManager.lifeSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, particleManager.atomicsSSbo);
+
+        glUseProgram(ShaderManager::ParticleComputeShader);
+        glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
+
+        // Rendering //
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Clear the screen to default color
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera.Update();
         glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.1f, 10000.0f);  // FOV, aspect, near, far
