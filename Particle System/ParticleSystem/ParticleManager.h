@@ -42,6 +42,8 @@ class ParticleManager {
     static const int NUM_PARTICLES = 8 * 1024 * 1024;
     static const int WORK_GROUP_SIZE = 128;
 
+    static int numAlive;
+
     static GLuint posSSbo;
     static GLuint velSSbo;
     static GLuint colSSbo;

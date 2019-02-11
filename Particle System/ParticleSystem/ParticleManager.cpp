@@ -20,6 +20,8 @@ GLuint ParticleManager::lifeSSbo;
 GLuint ParticleManager::paramSSbo;
 GLuint ParticleManager::atomicsSSbo;
 
+int ParticleManager::numAlive;
+
 ParticleManager::ParticleManager() {
     srand(time(NULL));
     particleParameters = particleParams{
@@ -31,6 +33,7 @@ ParticleManager::ParticleManager() {
         0.1f,                      // spawn rate - particles per second
         1.f,                       // Time
     };
+    numAlive = 0;
     InitGL();
 }
 
@@ -126,6 +129,11 @@ void ParticleManager::UpdateComputeParameters() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
     particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
     *params = particleParameters;
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomicsSSbo);
+    atomics *currentAtomics = (atomics *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(atomics), GL_MAP_READ_BIT);
+    numAlive = NUM_PARTICLES - currentAtomics->numDead;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 

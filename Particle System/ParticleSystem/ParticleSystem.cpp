@@ -359,8 +359,8 @@ int main(int argc, char* argv[]) {
         }
 
         stringstream debugText;
-        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " particles "
-                  << " | " << lastAverageFrameTime << " per frame average | " << lastFramerate << " FPS average over " << framesPerSample
+        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " total " /*<< particleManager.numAlive << " alive "*/
+                  << " | " << lastAverageFrameTime << " per frame (" << lastFramerate << "FPS) average over " << framesPerSample
                   << " frames "
                   << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord
                   << " | simulationSpeed: " << particleManager.particleParameters.simulationSpeed

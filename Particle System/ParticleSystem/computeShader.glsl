@@ -128,13 +128,20 @@ void InitializeSpawnPositionAndVelocity() {
 
 void Spawn() {
     Lifetimes[gid] = 1;
+    //atomicAdd(NumDead, -1);
 
     ColorMods[gid].r = ColorMods[gid].g = gold_noise(randSeed + 9) / 8.0;
     ColorMods[gid].b = -(gold_noise(randSeed + 10) / 10.0);
-    ColorMods[gid].a = -(gold_noise(randSeed + 11) / 10.0);
+    //ColorMods[gid].a = -(gold_noise(randSeed + 11) / 10.0);
 
     UpdateColor();
     InitializeSpawnPositionAndVelocity();    
+}
+
+void Die() {
+    Lifetimes[gid] = -1;
+    Colors[gid].a = 0;
+    //atomicAdd(NumDead, 1);
 }
 // -- -- //
 
@@ -149,13 +156,15 @@ void main() {
         } else {
             return;
         }
+    } else {
+        Lifetimes[gid] += dt;
     }
 
     vec3 p = Positions[gid].xyz;
     vec3 v = Velocities[gid].xyz;
     float r = length(GravityCenter - Positions[gid].xyz) / 5;
-    //vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
-    vec3 a = vec3(0, 0, -9.86);
+    vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
+    a += vec3(0, 0, -9.86);
 
     vec3 dta = dt * a;
 
@@ -197,11 +206,9 @@ void main() {
         Velocities[gid].y *= bounceFactor;
     }
 
-    //if (Lifetimes[gid] > 600) {
-    //    Lifetimes[gid] = -1;
-    //    Colors[gid].a = 0;
-    //    atomicAdd(NumDead, 1);
-    //}
+    if (Lifetimes[gid] > 15) {
+        Die();
+    }
 
     //if (Lifetimes[gid] < 0) {
     //    float spawnChance = SpawnRate / float(NumDead);
