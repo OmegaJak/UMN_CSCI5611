@@ -76,6 +76,8 @@ void ShaderManager::InitEnvironmentShaderAttributes() {
     EnvironmentShader.Attributes.projection = uniProj;
     EnvironmentShader.Attributes.model = uniModel;
 
+    EnvironmentShader.Attributes.screenSize = EnvironmentShader.Attributes.spriteSize = -1;
+
     glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
 }
 
@@ -97,11 +99,15 @@ void ShaderManager::InitParticleShaderAttributes() {
 
     GLint uniView = glGetUniformLocation(ParticleShader.Program, "view");
     GLint uniProj = glGetUniformLocation(ParticleShader.Program, "proj");
+    GLint uniScreenSize = glGetUniformLocation(ParticleShader.Program, "screenSize");
+    GLint uniSpriteSize = glGetUniformLocation(ParticleShader.Program, "spriteSize");
 
     ParticleShader.Attributes.position = posAttrib;
     ParticleShader.Attributes.color = colAttrib;
     ParticleShader.Attributes.view = uniView;
     ParticleShader.Attributes.projection = uniProj;
+    ParticleShader.Attributes.screenSize = uniScreenSize;
+    ParticleShader.Attributes.spriteSize = uniSpriteSize;
 
     // Make it obvious that these values aren't used
     ParticleShader.Attributes.normals = ParticleShader.Attributes.texCoord = ParticleShader.Attributes.texID =

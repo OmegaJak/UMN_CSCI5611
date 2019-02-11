@@ -369,6 +369,8 @@ int main(int argc, char* argv[]) {
 
         // Render particles!!
         ShaderManager::ActivateShader(ShaderManager::ParticleShader);
+        glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
+        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 100);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering

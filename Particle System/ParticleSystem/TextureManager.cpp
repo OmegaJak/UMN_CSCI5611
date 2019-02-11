@@ -16,7 +16,7 @@ void TextureManager::InitTextures() {
 void TextureManager::Update() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, tex0);
-    glUniform1i(glGetUniformLocation(ShaderManager::EnvironmentShader.Program, "tex0"), 0);
+    // glUniform1i(glGetUniformLocation(ShaderManager::EnvironmentShader.Program, "tex0"), 0);
 }
 
 void TextureManager::InitTexture(GLuint* tex_location, const char* file) {
