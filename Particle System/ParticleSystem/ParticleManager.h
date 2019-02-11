@@ -35,23 +35,20 @@ class ParticleManager {
     void RenderParticles(float dt);
     void InitGL();
     int GetNumParticles();
+    void UpdateComputeParameters();
 
     float genRate = 1000;
 
-    static const int NUM_PARTICLES = 2 * 1024 * 1024;
+    static const int NUM_PARTICLES = 8 * 1024 * 1024;
     static const int WORK_GROUP_SIZE = 128;
 
     static GLuint posSSbo;
     static GLuint velSSbo;
     static GLuint colSSbo;
+    static GLuint colModSSbo;
     static GLuint lifeSSbo;
     static GLuint paramSSbo;
     static GLuint atomicsSSbo;
 
     particleParams particleParameters;
-
-   private:
-    static float randBetween(int min, int max);
-
-    Model* _particleModel;
 };

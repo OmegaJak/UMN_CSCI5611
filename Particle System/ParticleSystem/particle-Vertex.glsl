@@ -19,6 +19,7 @@ void main() {
     vec4 projVoxel = proj * vec4(spriteSize, spriteSize, eyePos.z, eyePos.w);
     vec2 projSize = (screenSize * projVoxel.xy) / projVoxel.w;
     gl_PointSize = 0.25 * (projSize.x + projSize.y);
+    //gl_PointSize = 4;
     
     gl_Position = proj * eyePos;
 

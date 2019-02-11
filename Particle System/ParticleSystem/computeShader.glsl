@@ -14,6 +14,10 @@ layout(std140, binding = 3) buffer Col {
     vec4 Colors[];
 };
 
+layout(std140, binding = 7) buffer ColMod {
+    vec4 ColorMods[];
+};
+
 layout(std430, binding = 5) buffer Life {
     float Lifetimes[];
 };
@@ -37,38 +41,140 @@ layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 const float timestep = 0.01;
 const float G = 50;
-const float bounceFactor = -0.7;
+const float bounceFactor = -0.3;
+
+uint gid = -1;
+float randSeed = 1;
 
 // -- Random Function -- //
 // https://stackoverflow.com/a/28095165
 
-float PHI = 1.61803398874989484820459 * 00000.1;  // Golden Ratio
-float PI = 3.14159265358979323846264 * 00000.1;   // PI
-float SQ2 = 1.41421356237309504880169 * 10000.0;  // Square Root of Two
+const float PHI = 1.61803398874989484820459 * 00000.1;  // Golden Ratio
+const float FAKE_PI = 3.14159265358979323846264 * 00000.1;   // PI
+const float SQ2 = 1.41421356237309504880169 * 10000.0;  // Square Root of Two
 
 float gold_noise(in vec2 coordinate, in float seed) {
-    return fract(tan(distance(coordinate * (seed + PHI), vec2(PHI, PI))) * SQ2);
+    return fract(tan(distance(coordinate * (seed + PHI), vec2(PHI, FAKE_PI))) * SQ2);
 }
-// -- End Random Function -- //
+
+float gold_noise(float seed) {
+    return gold_noise(vec2(seed + 1, seed + 2), seed);
+}
+
+// alternate
+// https://gist.github.com/patriciogonzalezvivo/670c22f3966e662d2f83
+float rand(float n) {
+    return fract(sin(n) * 43758.5453123);
+}
+// -- -- //
+
+// -- Generate rotation matrix around axis -- //
+// http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
+mat4 rotationMatrix(vec3 axis, float angle) {
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+
+    return mat4(oc * axis.x * axis.x + c, oc * axis.x * axis.y - axis.z * s, oc * axis.z * axis.x + axis.y * s, 0.0,
+                oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
+                oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0, 0.0, 0.0, 0.0, 1.0);
+}
+// -- -- //
+
+void UpdateColor() {
+    /*float velFoaminess = max(min((1 - (abs(Velocities[gid].z) / 10)), 1), 0);
+    float heightFoaminess = max(min((Positions[gid].z / 50), 1), 0);
+    float foaminess = max(min(0.2 * velFoaminess + 0.4 * heightFoaminess, 1), 0);*/
+    float cutoff = 10;
+    float foaminess = max((cutoff - min(Positions[gid].z, cutoff)) / cutoff, 0);
+    Colors[gid].xyz = vec3(foaminess, foaminess, 1) + ColorMods[gid].rgb;
+
+    if (Lifetimes[gid] < 0) {
+        Colors[gid].a = 0;
+    } else {
+        Colors[gid].a = 1 + ColorMods[gid].a;
+    }
+}
+
+// -- Spawning -- //
+const float PI = 3.14159265358979323846264;
+const vec4 diskCenter = vec4(20, 20, 50, 1);
+const vec4 diskNormal = normalize(vec4(1, 0, 1, 1));
+const float diskRadius = 10;
+const float cylindricalHeight = 4;
+const float launchAngle = -PI / 2;
+const float launchVelocity = 30;
+const vec4 up = vec4(0, 0, 1, 1);
+
+void InitializeSpawnPositionAndVelocity() {
+    float r = diskRadius * sqrt(gold_noise(vec2(gid, gid), randSeed));
+    float theta = gold_noise(vec2(gid, gid), randSeed + 1) * 2 * PI;
+
+    vec4 vecInPlane = vec4(cross(up.xyz, diskNormal.xyz), 1);
+    vec4 rotated = rotationMatrix(diskNormal.xyz, theta) * vecInPlane;
+    
+    float cylinderNoise = gold_noise(vec2(gid, gid), randSeed + 4);
+    vec4 cylindricalOffset = cylinderNoise * diskNormal * cylindricalHeight;
+    /*ColorMods[gid].r += cylinderNoise / 8;
+    ColorMods[gid].g += cylinderNoise / 8;*/
+
+    Positions[gid] = diskCenter + r * normalize(rotated) + cylindricalOffset;
+
+    //rotated = rotationMatrix(diskNormal.xyz, launchAngle) * vecInPlane;
+    float noise = (gold_noise(vec2(gid, gid), randSeed + 2) - 0.5) * 2;
+    Velocities[gid] = vec4(noise, noise, noise, 1) + diskNormal * launchVelocity;
+}
+
+void Spawn() {
+    Lifetimes[gid] = 1;
+
+    ColorMods[gid].r = ColorMods[gid].g = gold_noise(randSeed + 9) / 8.0;
+    ColorMods[gid].b = -(gold_noise(randSeed + 10) / 10.0);
+    ColorMods[gid].a = -(gold_noise(randSeed + 11) / 10.0);
+
+    UpdateColor();
+    InitializeSpawnPositionAndVelocity();    
+}
+// -- -- //
 
 void main() {
-    uint gid = gl_GlobalInvocationID.x;
+    gid = gl_GlobalInvocationID.x;
+    randSeed = Time;
     float dt = timestep * SimulationSpeed;
-    // const uvec3 idx = gl_WorkGroupID* gl_WorkGroupSize + gl_LocalInvocationID;
+
+    if (Lifetimes[gid] < 0) {
+        if (dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.001) {
+            Spawn();
+        } else {
+            return;
+        }
+    }
 
     vec3 p = Positions[gid].xyz;
     vec3 v = Velocities[gid].xyz;
     float r = length(GravityCenter - Positions[gid].xyz) / 5;
-    vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
+    //vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
+    vec3 a = vec3(0, 0, -9.86);
 
     vec3 dta = dt * a;
 
     Positions[gid].xyz = p.xyz + v.xyz * dt + 0.5 * dt * dta;
     Velocities[gid].xyz = (v + dta) * 0.9999;
 
+    if (Positions[gid].x > 170) {
+        InitializeSpawnPositionAndVelocity();
+    }
+
+    UpdateColor();
+
     if (Positions[gid].z < minZ) {
         Positions[gid].z = minZ;
         Velocities[gid].z *= bounceFactor;
+        if (Velocities[gid].z > 1) {
+            Velocities[gid].x += (gold_noise(randSeed + 20) - 0.5) * 4;
+            Velocities[gid].y += (gold_noise(randSeed + 21) - 0.5) * 4;
+        }
     }
     if (Positions[gid].z > maxZ) {
         Positions[gid].z = maxZ;

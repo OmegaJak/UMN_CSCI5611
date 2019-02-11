@@ -313,6 +313,8 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
+        particleManager.UpdateComputeParameters();
+
         // Particles compute shader //
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, particleManager.posSSbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, particleManager.velSSbo);
@@ -320,6 +322,7 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, particleManager.lifeSSbo);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, particleManager.atomicsSSbo);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, particleManager.colModSSbo);
 
         glUseProgram(ShaderManager::ParticleComputeShader);
         glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
@@ -331,9 +334,11 @@ int main(int argc, char* argv[]) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
 
         // Rendering //
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);  // Clear the screen to default color
+        float gray = 0.6f;
+        glClearColor(gray, gray, gray, 1.0f);  // Clear the screen to default color
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera.Update();
@@ -370,7 +375,7 @@ int main(int argc, char* argv[]) {
         // Render particles!!
         ShaderManager::ActivateShader(ShaderManager::ParticleShader);
         glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
-        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 100);
+        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 20);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering

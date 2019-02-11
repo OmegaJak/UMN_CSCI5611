@@ -2,11 +2,9 @@
 
 #include <SDL_stdinc.h>
 #include <ctime>
-#include <gtc/type_ptr.hpp>
-#include "Constants.h"
 #include "ParticleManager.h"
 #include "ShaderManager.h"
-#include "TextureManager.h"
+#include "Utils.h"
 #include "glad.h"
 
 const float radius = 0.5;
@@ -17,21 +15,21 @@ const GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
 GLuint ParticleManager::posSSbo;
 GLuint ParticleManager::velSSbo;
 GLuint ParticleManager::colSSbo;
+GLuint ParticleManager::colModSSbo;
 GLuint ParticleManager::lifeSSbo;
 GLuint ParticleManager::paramSSbo;
 GLuint ParticleManager::atomicsSSbo;
 
 ParticleManager::ParticleManager() {
-    _particleModel = new Model("models/sphere.txt");
     srand(time(NULL));
     particleParameters = particleParams{
-        50.f,    50.f,    50.f,     // gravity center
-        -5000.f, -5000.f, -5000.f,  // min
-        5000.f,  5000.f,  5000.f,   // max
-        1.0f,                       // sim speed
-        0.0f,                       // grav factor
-        0.1f,                       // spawn rate - particles per second
-        0.f,                        // Time
+        50.f,    50.f,    50.f,    // gravity center
+        -5000.f, -5000.f, 0.f,     // min
+        5000.f,  5000.f,  5000.f,  // max
+        1.0f,                      // sim speed
+        0.0f,                      // grav factor
+        0.1f,                      // spawn rate - particles per second
+        1.f,                       // Time
     };
     InitGL();
 }
@@ -42,13 +40,9 @@ void ParticleManager::InitGL() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(position), nullptr, GL_STATIC_DRAW);
 
+    printf("Initializing Particle spawn positions...\n");
     position *points = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof(position), bufMask);
-    for (int i = 0; i < NUM_PARTICLES; i++) {
-        points[i].x = randBetween(0, 100);
-        points[i].y = randBetween(0, 100);
-        points[i].z = randBetween(0, 100);
-        points[i].w = 1;
-    }
+    memset(points, 0, NUM_PARTICLES * sizeof(position));
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // Prepare the velocities buffer
@@ -56,6 +50,7 @@ void ParticleManager::InitGL() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, velSSbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(velocity), nullptr, GL_STATIC_DRAW);
 
+    printf("Initializing particle spawn velocities\n");
     velocity *vels = (velocity *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof(velocity), bufMask);
     for (int i = 0; i < NUM_PARTICLES; i++) {
         /*vels[i].vx = randBetween(0, 15) - 7.5;
@@ -74,13 +69,19 @@ void ParticleManager::InitGL() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, colSSbo);
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(color), nullptr, GL_STATIC_DRAW);
 
+    printf("Initializing particle spawn colors...\n");
     color *colors = (color *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof(color), bufMask);
-    for (int i = 0; i < NUM_PARTICLES; i++) {
-        colors[i].r = randBetween(0, 1);
-        colors[i].g = randBetween(0, 1);
-        colors[i].b = randBetween(0, 1);
-        colors[i].a = 1;
-    }
+    memset(colors, 0, NUM_PARTICLES * sizeof(color));
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    // Prepare the color mods buffer
+    glGenBuffers(1, &colModSSbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, colModSSbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(color), nullptr, GL_STATIC_DRAW);
+
+    printf("Initializing particle spawn color mods...\n");
+    color *colorMods = (color *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_PARTICLES * sizeof(color), bufMask);
+    memset(colorMods, 0, NUM_PARTICLES * sizeof(color));
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     // Prepare the lifetimes buffer
@@ -113,18 +114,22 @@ void ParticleManager::InitGL() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(atomicsSSbo), &initialAtomics, GL_STATIC_DRAW);
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    printf("Done initializing particle buffers\n");
 }
 
 int ParticleManager::GetNumParticles() {
     return NUM_PARTICLES;
 }
 
-void ParticleManager::RenderParticles(float dt) {
+void ParticleManager::UpdateComputeParameters() {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
     particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
     *params = particleParameters;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+}
 
+void ParticleManager::RenderParticles(float dt) {
     /*glBindBuffer(GL_SHADER_STORAGE_BUFFER, atomicsSSbo);
     atomics *currentAtomics = (atomics *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(atomics), GL_MAP_READ_BIT);
     printf("%f, %i\n", particleParameters.spawnRate / (float)currentAtomics->numDead, currentAtomics->numDead);
@@ -135,12 +140,4 @@ void ParticleManager::RenderParticles(float dt) {
     glDrawArrays(GL_POINTS, 0, NUM_PARTICLES);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
-}
-
-// https://stackoverflow.com/questions/5289613/generate-random-float-between-two-floats
-float ParticleManager::randBetween(int min, int max) {
-    float random = ((float)rand()) / (float)RAND_MAX;
-    float diff = max - min;
-    float r = random * diff;
-    return min + r;
 }
