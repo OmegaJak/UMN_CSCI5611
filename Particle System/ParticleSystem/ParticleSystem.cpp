@@ -3,6 +3,7 @@
 // Credit to Stephen J. Guy, 2018 for the foundations
 
 #define GLM_FORCE_RADIANS
+#include <SDL_image.h>
 #include <iomanip>
 #include <iostream>
 #include <sstream>
@@ -369,11 +370,12 @@ int main(int argc, char* argv[]) {
 
         // Render the environment
         ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
-        TextureManager::Update();
+        TextureManager::Update(ShaderManager::EnvironmentShader.Program);
         environment.UpdateAll();
 
         // Render particles!!
         ShaderManager::ActivateShader(ShaderManager::ParticleShader);
+        TextureManager::Update(ShaderManager::ParticleShader.Program);
         glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
         glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 30);
         particleManager.RenderParticles(deltaTime);
@@ -386,6 +388,7 @@ int main(int argc, char* argv[]) {
     ModelManager::Cleanup();
 
     SDL_GL_DeleteContext(context);
+    IMG_Quit();
     SDL_Quit();
     return 0;
 }

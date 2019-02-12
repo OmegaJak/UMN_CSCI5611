@@ -1,3 +1,4 @@
+#include <fstream>
 #include "Constants.h"
 #include "ParticleManager.h"
 #include "ShaderManager.h"
@@ -249,40 +250,53 @@ GLuint ShaderManager::CompileComputeShaderProgram(const std::string& compute_sha
 
 // Create a NULL-terminated string by reading the provided file
 char* ShaderManager::ReadShaderSource(const char* shaderFile) {
-    FILE* fp;
-    long length;
-    char* buffer;
+    // FILE* fp;
+    // long length;
+    // char* buffer;
 
-    // open the file containing the text of the shader code
-    fopen_s(&fp, shaderFile, "r");
+    //// open the file containing the text of the shader code
+    // fopen_s(&fp, shaderFile, "r");
 
-    // check for errors in opening the file
-    if (fp == NULL) {
-        printf("Can't open shader source file %s\n", shaderFile);
-        return NULL;
+    //// check for errors in opening the file
+    // if (fp == NULL) {
+    //    printf("Can't open shader source file %s\n", shaderFile);
+    //    return NULL;
+    //}
+
+    //// determine the file size
+    // fseek(fp, 0, SEEK_END);  // move position indicator to the end of the file;
+    // length = ftell(fp);      // return the value of the current position
+
+    //// allocate a buffer with the indicated number of bytes, plus one
+    // buffer = new char[length + 1];
+    // for (int i = 0; i < length + 1; i++) {
+    //    buffer[i] = '\0';
+    //}
+
+    //// read the appropriate number of bytes from the file
+    // fseek(fp, 0, SEEK_SET);        // move position indicator to the start of the file
+    // fread(buffer, 1, length, fp);  // read all of the bytes
+
+    //// append a NULL character to indicate the end of the string
+    // buffer[length] = '\0';
+
+    //// close the file
+    // fclose(fp);
+
+    //// return the string
+    // return buffer;
+    // https://stackoverflow.com/questions/18816126/c-read-the-whole-file-in-buffer
+    std::ifstream file(shaderFile, std::ios::binary | std::ios::ate);
+    std::streamsize size = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    char* buffer = new char[size + 1];
+    if (!file.read(buffer, size)) {
+        printf("Failed to read file %s\n", shaderFile);
     }
 
-    // determine the file size
-    fseek(fp, 0, SEEK_END);  // move position indicator to the end of the file;
-    length = ftell(fp);      // return the value of the current position
+    buffer[size] = '\0';
 
-    // allocate a buffer with the indicated number of bytes, plus one
-    buffer = new char[length + 1];
-    for (int i = 0; i < length + 1; i++) {
-        buffer[i] = '\0';
-    }
-
-    // read the appropriate number of bytes from the file
-    fseek(fp, 0, SEEK_SET);        // move position indicator to the start of the file
-    fread(buffer, 1, length, fp);  // read all of the bytes
-
-    // append a NULL character to indicate the end of the string
-    buffer[length] = '\0';
-
-    // close the file
-    fclose(fp);
-
-    // return the string
     return buffer;
 }
 

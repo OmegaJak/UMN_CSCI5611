@@ -10,26 +10,28 @@ out vec4 outColor;
 
 uniform sampler2D tex0;
 uniform sampler2D tex1;
+uniform sampler2D tex2;
 
 uniform int texID;
 uniform float specFactor;
 
 const float ambient = .25;
 void main() {
-    vec3 color;
+    vec4 color;
     if (texID == -1)
-        color = Color;
+        color = vec4(Color, 1);
     else if (texID == 0)
-        color = texture(tex0, texcoord).rgb;
+        color = texture(tex0, texcoord);
     else if (texID == 1)
-        color = texture(tex1, texcoord).rgb;
+        color = texture(tex1, texcoord);
     else {
         outColor = vec4(1, 0, 0, 1);
         return;  // This was an error, stop lighting!
     }
+    if (color.a < 1) discard;
     vec3 normal = normalize(vertNormal);
-    vec3 diffuseC = color * max(dot(-lightDir, normal), 0.0);
-    vec3 ambC = color * ambient;
+    vec3 diffuseC = color.rgb * max(dot(-lightDir, normal), 0.0);
+    vec3 ambC = color.rgb * ambient;
     vec3 viewDir = normalize(-pos);  // We know the eye is at (0,0)! (Do you know why?)
     vec3 reflectDir = reflect(viewDir, normal);
     float spec = max(dot(reflectDir, lightDir), 0.0);

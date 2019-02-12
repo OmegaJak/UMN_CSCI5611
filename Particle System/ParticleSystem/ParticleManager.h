@@ -39,7 +39,7 @@ class ParticleManager {
 
     float genRate = 1000;
 
-    static const int NUM_PARTICLES = 8 * 1024 * 1024;
+    static const int NUM_PARTICLES = 16 * 1024 * 1024;
     static const int WORK_GROUP_SIZE = 128;
 
     static int numAlive;

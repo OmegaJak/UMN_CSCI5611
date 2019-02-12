@@ -32,7 +32,7 @@ layout(std430, binding = 4) buffer Parameters {
     float Time;
 };
 
-//layout(binding = 6, offset = 0) uniform atomic_uint NumDead;
+// layout(binding = 6, offset = 0) uniform atomic_uint NumDead;
 layout(std430, binding = 6) buffer Atomics {
     int NumDead;
 };
@@ -49,9 +49,9 @@ float randSeed = 1;
 // -- Random Function -- //
 // https://stackoverflow.com/a/28095165
 
-const float PHI = 1.61803398874989484820459 * 00000.1;  // Golden Ratio
-const float FAKE_PI = 3.14159265358979323846264 * 00000.1;   // PI
-const float SQ2 = 1.41421356237309504880169 * 10000.0;  // Square Root of Two
+const float PHI = 1.61803398874989484820459 * 00000.1;      // Golden Ratio
+const float FAKE_PI = 3.14159265358979323846264 * 00000.1;  // PI
+const float SQ2 = 1.41421356237309504880169 * 10000.0;      // Square Root of Two
 
 float gold_noise(in vec2 coordinate, in float seed) {
     return fract(tan(distance(coordinate * (seed + PHI), vec2(PHI, FAKE_PI))) * SQ2);
@@ -84,15 +84,21 @@ mat4 rotationMatrix(vec3 axis, float angle) {
 mat4 rotationMatrix(vec4 axis, float angle) {
     return rotationMatrix(axis.xyz, angle);
 }
-    // -- -- //
+// -- -- //
 
 void UpdateColor() {
     /*float velFoaminess = max(min((1 - (abs(Velocities[gid].z) / 10)), 1), 0);
     float heightFoaminess = max(min((Positions[gid].z / 50), 1), 0);
     float foaminess = max(min(0.2 * velFoaminess + 0.4 * heightFoaminess, 1), 0);*/
-    float cutoff = 10;
-    float foaminess = max((cutoff - min(Positions[gid].z, cutoff)) / cutoff, 0);
-    Colors[gid].xyz = vec3(0, 0, 1) + ColorMods[gid].rgb;
+    float heightCutoff = 35;
+    float heightFoaminess = max((heightCutoff - min(Positions[gid].z, heightCutoff)) / heightCutoff, 0);
+
+    float velCutoff = 20;
+    float slownessBlueness = (velCutoff - min(length(Velocities[gid].xyz), velCutoff)) / velCutoff;
+
+    float foaminess = max(heightFoaminess - slownessBlueness, 0);
+
+    Colors[gid].xyz = vec3(foaminess, foaminess, 1) + ColorMods[gid].rgb;
 
     if (Lifetimes[gid] < 0) {
         Colors[gid].a = 0;
@@ -117,7 +123,7 @@ void InitializeSpawnPositionAndVelocity() {
 
     vec4 vecInPlane = vec4(cross(up.xyz, diskNormal.xyz), 1);
     vec4 rotated = rotationMatrix(diskNormal.xyz, theta) * vecInPlane;
-    
+
     float cylinderNoise = gold_noise(vec2(gid, gid), randSeed + 4);
     vec4 cylindricalOffset = cylinderNoise * diskNormal * cylindricalHeight;
     /*ColorMods[gid].r += cylinderNoise / 8;
@@ -125,7 +131,7 @@ void InitializeSpawnPositionAndVelocity() {
 
     Positions[gid] = diskCenter + r * normalize(rotated) + cylindricalOffset;
 
-    //rotated = rotationMatrix(diskNormal.xyz, launchAngle) * vecInPlane;
+    // rotated = rotationMatrix(diskNormal.xyz, launchAngle) * vecInPlane;
     float noiseX = (rand(gid + randSeed + 102) - 0.5) * 4;
     float noiseY = (rand(gid + randSeed + 103) - 0.5) * 4;
     float noiseZ = (rand(gid + randSeed + 104) - 0.5) * 4;
@@ -134,21 +140,21 @@ void InitializeSpawnPositionAndVelocity() {
 
 void Spawn() {
     Lifetimes[gid] = 1;
-    //atomicAdd(NumDead, -1);
+    // atomicAdd(NumDead, -1);
 
     ColorMods[gid].r = ColorMods[gid].g = gold_noise(randSeed + 9) / 8.0;
     ColorMods[gid].b = -(gold_noise(randSeed + 10) / 10.0);
-    //ColorMods[gid].a = -(gold_noise(randSeed + 11) / 10.0);
+    // ColorMods[gid].a = -(gold_noise(randSeed + 11) / 10.0);
 
     UpdateColor();
-    InitializeSpawnPositionAndVelocity();    
+    InitializeSpawnPositionAndVelocity();
 }
 
 void Die() {
     Lifetimes[gid] = -1;
     Colors[gid].a = 0;
     Positions[gid] = vec4(10000, 10000, 10000, 1);
-    //atomicAdd(NumDead, 1);
+    // atomicAdd(NumDead, 1);
 }
 // -- -- //
 
@@ -158,13 +164,16 @@ void main() {
     float dt = timestep * SimulationSpeed;
 
     if (Lifetimes[gid] < 0) {
-        if (dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.000001) {
+        if (dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.000000000001) {
             Spawn();
         } else {
             return;
         }
     } else {
         Lifetimes[gid] += dt;
+        if (length(Velocities[gid].xyz) < 1) {
+            Lifetimes[gid] += 4 * dt; // age still particles faster
+        }
     }
 
     vec3 p = Positions[gid].xyz;
@@ -202,7 +211,7 @@ void main() {
                     bounceFac = -0.5;
                 }
             }
-            
+
             Velocities[gid].xy = (rotationMatrix(up, theta) * Velocities[gid]).xy;
             Velocities[gid].xy *= xyFactor;
             Velocities[gid].z *= bounceFac;
@@ -234,13 +243,13 @@ void main() {
         Velocities[gid].y *= bounceFactor;
     }
 
-    if (Lifetimes[gid] > 9.5) {
+    if (Lifetimes[gid] > 15) {
         Die();
     }
 
-    //if (Lifetimes[gid] < 0) {
+    // if (Lifetimes[gid] < 0) {
     //    float spawnChance = SpawnRate / float(NumDead);
-    //    
+    //
     //    if (gold_noise(vec2(gid, gid), Time) < spawnChance) {
     //        Lifetimes[gid] = 1;
     //        atomicAdd(NumDead, -1);

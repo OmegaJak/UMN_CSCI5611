@@ -21,7 +21,7 @@ void Environment::SetGravityCenterPosition(const glm::vec3& position) {
 void Environment::CreateEnvironment() {
     auto z = -0.5;
 
-    auto num = 10;
+    /*auto num = 10;
     for (int i = 0; i < num; i++) {
         for (int j = 0; j < num; j++) {
             auto gameObject = GameObject(_cubeModel);
@@ -49,7 +49,7 @@ void Environment::CreateEnvironment() {
             gameObject.SetPosition(glm::vec3(i, num, j));
             _gameObjects.push_back(gameObject);
         }
-    }
+    }*/
 
     auto gameObject = GameObject(_tubeModel);
     gameObject.SetTextureIndex(UNTEXTURED);
@@ -65,6 +65,12 @@ void Environment::CreateEnvironment() {
     gameObject.SetScale(10000, 10000, 1);
     gameObject.SetPosition(glm::vec3(0, 0, -0.55));
     gameObject.material_.specFactor_ = 0.2;
+    _gameObjects.push_back(gameObject);
+
+    gameObject = GameObject(_cubeModel);  // reference person
+    gameObject.SetTextureIndex(TEX1);
+    gameObject.SetScale(1, 0, -3);
+    gameObject.SetPosition(glm::vec3(-25, 13, 1.5));
     _gameObjects.push_back(gameObject);
 
     gameObject = GameObject(_sphereModel);
