@@ -292,7 +292,6 @@ int main(int argc, char* argv[]) {
 
                     if (windowEvent.key.keysym.mod & KMOD_CTRL) {
                         fullGravityAcceleration += modAmount;
-                        particleManager.particleParameters.gravityAccelerationFactor = fullGravityAcceleration;
                     } else if (windowEvent.key.keysym.mod & KMOD_ALT) {
                         gravityCenterDistance += modAmount;
                     } else {
