@@ -16,6 +16,7 @@ typedef struct {
     GLint screenSize;
     GLint spriteSize;
     GLint specFactor;
+    GLint particleMode;
 } ShaderAttributes;
 
 typedef struct {

@@ -1,4 +1,5 @@
 #include "Environment.h"
+#include "ParticleManager.h"
 
 Environment::Environment() {
     _cubeModel = new Model("models/cube.txt");
@@ -50,22 +51,27 @@ void Environment::CreateEnvironment() {
             _gameObjects.push_back(gameObject);
         }
     }*/
+    GameObject gameObject;
 
-    auto gameObject = GameObject(_tubeModel);
-    gameObject.SetTextureIndex(UNTEXTURED);
-    gameObject.SetColor(glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0));
-    gameObject.SetScale(6.6, 40, 6.6);
-    gameObject.EulerRotate(0, 90, -45);
-    gameObject.SetPosition(glm::vec3(20, 20, 50));
-    _gameObjects.push_back(gameObject);
+    if (ParticleManager::PARTICLE_MODE == Water_Mode) {
+        gameObject = GameObject(_tubeModel);
+        gameObject.SetTextureIndex(UNTEXTURED);
+        gameObject.SetColor(glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0));
+        gameObject.SetScale(6.6, 40, 6.6);
+        gameObject.EulerRotate(0, 90, -45);
+        gameObject.SetPosition(glm::vec3(20, 20, 50));
+        _gameObjects.push_back(gameObject);
+    }
 
-    gameObject = GameObject(_cubeModel);  // ground
-    gameObject.SetTextureIndex(UNTEXTURED);
-    gameObject.SetColor(glm::vec3(0, 77 / 255.0, 26 / 255.0));
-    gameObject.SetScale(10000, 10000, 1);
-    gameObject.SetPosition(glm::vec3(0, 0, -0.55));
-    gameObject.material_.specFactor_ = 0.2;
-    _gameObjects.push_back(gameObject);
+    if (ParticleManager::PARTICLE_MODE != Free_Mode) {
+        gameObject = GameObject(_cubeModel);  // ground
+        gameObject.SetTextureIndex(UNTEXTURED);
+        gameObject.SetColor(glm::vec3(0, 77 / 255.0, 26 / 255.0));
+        gameObject.SetScale(10000, 10000, 1);
+        gameObject.SetPosition(glm::vec3(0, 0, -0.55));
+        gameObject.material_.specFactor_ = 0.2;
+        _gameObjects.push_back(gameObject);
+    }
 
     gameObject = GameObject(_cubeModel);  // reference person
     gameObject.SetTextureIndex(TEX1);

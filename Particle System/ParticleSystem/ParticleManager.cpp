@@ -2,6 +2,7 @@
 
 #include <SDL_stdinc.h>
 #include <ctime>
+#include "Constants.h"
 #include "ParticleManager.h"
 #include "ShaderManager.h"
 #include "Utils.h"
@@ -21,18 +22,24 @@ GLuint ParticleManager::paramSSbo;
 GLuint ParticleManager::atomicsSSbo;
 
 int ParticleManager::numAlive;
+ParticleMode ParticleManager::PARTICLE_MODE;
 
 ParticleManager::ParticleManager() {
     srand(time(NULL));
     particleParameters = particleParams{
-        50.f,    50.f,    50.f,    // gravity center
-        -5000.f, -5000.f, 0.f,     // min
-        5000.f,  5000.f,  5000.f,  // max
-        1.0f,                      // sim speed
-        0.0f,                      // grav factor
-        0.1f,                      // spawn rate - particles per second
-        1.f,                       // Time
+        50.f,         50.f,    50.f,    // gravity center
+        -5000.f,      -5000.f, 0.f,     // min
+        5000.f,       5000.f,  5000.f,  // max
+        1.0f,                           // sim speed
+        0.0f,                           // grav factor
+        0.1f,                           // spawn rate - particles per second
+        1.f,                            // Time
+        PARTICLE_MODE                   // Which particle sim to do
     };
+    if (PARTICLE_MODE == Free_Mode) {
+        particleParameters.minZ = -5000.f;
+    }
+
     numAlive = 0;
     InitGL();
 }
@@ -93,8 +100,8 @@ void ParticleManager::InitGL() {
     glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_PARTICLES * sizeof(GLfloat), nullptr, GL_STATIC_DRAW);
 
     // Initialize lifetimes to zero
-    // The lifetimes buffer is all floats, single value each. One value each = R, with 32-bit floats, so GL_R32F. We're setting the 'red'
-    // bit (GL_RED) here of each to the initial value
+    // The lifetimes buffer is all floats, single value each. One value each = R, with 32-bit floats, so GL_R32F. We're setting the
+    // 'red' bit (GL_RED) here of each to the initial value
     float startingLifetime = -1;
     glClearBufferSubData(GL_SHADER_STORAGE_BUFFER, GL_R32F, 0, NUM_PARTICLES * sizeof(GLfloat), GL_RED, GL_FLOAT, &startingLifetime);
 

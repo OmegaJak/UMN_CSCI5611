@@ -10,6 +10,7 @@ struct particleParams {
     GLfloat gravityAccelerationFactor;
     GLfloat spawnRate;
     GLfloat time;
+    GLint particleMode;
 };
 
 struct position {
@@ -28,6 +29,8 @@ struct atomics {
     GLint numDead;
 };
 
+enum ParticleMode { Free_Mode = 0, Magic_Mode = 1, Water_Mode = 2 };
+
 class ParticleManager {
    public:
     ParticleManager();
@@ -39,7 +42,7 @@ class ParticleManager {
 
     float genRate = 1000;
 
-    static const int NUM_PARTICLES = 16 * 1024 * 1024;
+    static const int NUM_PARTICLES = 8 * 1024 * 1024;
     static const int WORK_GROUP_SIZE = 128;
 
     static int numAlive;
@@ -51,6 +54,11 @@ class ParticleManager {
     static GLuint lifeSSbo;
     static GLuint paramSSbo;
     static GLuint atomicsSSbo;
+
+    static ParticleMode PARTICLE_MODE;
+    // 0 = zero-g original sim
+    // 1 = fireball
+    // 2 = waterfall
 
     particleParams particleParameters;
 };

@@ -153,6 +153,30 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum seve
 }
 
 int main(int argc, char* argv[]) {
+    if (argc > 1) {
+        int num = atoi(argv[1]);
+        ParticleMode mode;
+        printf("Operating in particle mode: ");
+        if (num == 0) {
+            printf("free\n");
+            mode = Free_Mode;
+        } else if (num == 1) {
+            printf("magic\n");
+            mode = Magic_Mode;
+        } else if (num == 2) {
+            printf("water\n");
+            mode = Water_Mode;
+        } else {
+            printf("Unrecognized particle mode \"%i\" specified. Defaulting to free mode\n", num);
+            mode = Free_Mode;
+        }
+
+        ParticleManager::PARTICLE_MODE = mode;
+    } else {
+        printf("No particle mode specified. Defaulting to water mode");
+        ParticleManager::PARTICLE_MODE = Water_Mode;
+    }
+
     SDL_Init(SDL_INIT_VIDEO);  // Initialize Graphics (for OpenGL)
 
     // Ask SDL to get a recent version of OpenGL (3.2 or greater)
@@ -339,6 +363,9 @@ int main(int argc, char* argv[]) {
 
         // Rendering //
         float gray = 0.6f;
+        if (ParticleManager::PARTICLE_MODE == Free_Mode) {
+            gray = 0.1f;
+        }
         glClearColor(gray, gray, gray, 1.0f);  // Clear the screen to default color
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -378,6 +405,7 @@ int main(int argc, char* argv[]) {
         TextureManager::Update(ShaderManager::ParticleShader.Program);
         glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
         glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 30);
+        glUniform1i(ShaderManager::ParticleShader.Attributes.particleMode, ParticleManager::PARTICLE_MODE);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering
