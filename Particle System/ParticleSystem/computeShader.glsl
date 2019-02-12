@@ -41,7 +41,7 @@ layout(local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
 const float timestep = 0.01;
 const float G = 50;
-const float bounceFactor = -0.3;
+const float bounceFactor = -0.7;
 
 uint gid = -1;
 float randSeed = 1;
@@ -80,7 +80,11 @@ mat4 rotationMatrix(vec3 axis, float angle) {
                 oc * axis.x * axis.y + axis.z * s, oc * axis.y * axis.y + c, oc * axis.y * axis.z - axis.x * s, 0.0,
                 oc * axis.z * axis.x - axis.y * s, oc * axis.y * axis.z + axis.x * s, oc * axis.z * axis.z + c, 0.0, 0.0, 0.0, 0.0, 1.0);
 }
-// -- -- //
+
+mat4 rotationMatrix(vec4 axis, float angle) {
+    return rotationMatrix(axis.xyz, angle);
+}
+    // -- -- //
 
 void UpdateColor() {
     /*float velFoaminess = max(min((1 - (abs(Velocities[gid].z) / 10)), 1), 0);
@@ -88,12 +92,12 @@ void UpdateColor() {
     float foaminess = max(min(0.2 * velFoaminess + 0.4 * heightFoaminess, 1), 0);*/
     float cutoff = 10;
     float foaminess = max((cutoff - min(Positions[gid].z, cutoff)) / cutoff, 0);
-    Colors[gid].xyz = vec3(foaminess, foaminess, 1) + ColorMods[gid].rgb;
+    Colors[gid].xyz = vec3(0, 0, 1) + ColorMods[gid].rgb;
 
     if (Lifetimes[gid] < 0) {
         Colors[gid].a = 0;
     } else {
-        Colors[gid].a = 1 + ColorMods[gid].a;
+        Colors[gid].a = 1;
     }
 }
 
@@ -102,14 +106,14 @@ const float PI = 3.14159265358979323846264;
 const vec4 diskCenter = vec4(20, 20, 50, 1);
 const vec4 diskNormal = normalize(vec4(1, 0, 1, 1));
 const float diskRadius = 10;
-const float cylindricalHeight = 4;
+const float cylindricalHeight = -4;
 const float launchAngle = -PI / 2;
 const float launchVelocity = 30;
 const vec4 up = vec4(0, 0, 1, 1);
 
 void InitializeSpawnPositionAndVelocity() {
     float r = diskRadius * sqrt(gold_noise(vec2(gid, gid), randSeed));
-    float theta = gold_noise(vec2(gid, gid), randSeed + 1) * 2 * PI;
+    float theta = rand(gid + randSeed + 1) * 2 * PI;
 
     vec4 vecInPlane = vec4(cross(up.xyz, diskNormal.xyz), 1);
     vec4 rotated = rotationMatrix(diskNormal.xyz, theta) * vecInPlane;
@@ -122,8 +126,10 @@ void InitializeSpawnPositionAndVelocity() {
     Positions[gid] = diskCenter + r * normalize(rotated) + cylindricalOffset;
 
     //rotated = rotationMatrix(diskNormal.xyz, launchAngle) * vecInPlane;
-    float noise = (gold_noise(vec2(gid, gid), randSeed + 2) - 0.5) * 2;
-    Velocities[gid] = vec4(noise, noise, noise, 1) + diskNormal * launchVelocity;
+    float noiseX = (rand(gid + randSeed + 102) - 0.5) * 4;
+    float noiseY = (rand(gid + randSeed + 103) - 0.5) * 4;
+    float noiseZ = (rand(gid + randSeed + 104) - 0.5) * 4;
+    Velocities[gid] = vec4(noiseX, noiseY, noiseZ, 1) + diskNormal * launchVelocity;
 }
 
 void Spawn() {
@@ -141,6 +147,7 @@ void Spawn() {
 void Die() {
     Lifetimes[gid] = -1;
     Colors[gid].a = 0;
+    Positions[gid] = vec4(10000, 10000, 10000, 1);
     //atomicAdd(NumDead, 1);
 }
 // -- -- //
@@ -151,7 +158,7 @@ void main() {
     float dt = timestep * SimulationSpeed;
 
     if (Lifetimes[gid] < 0) {
-        if (dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.001) {
+        if (dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.000001) {
             Spawn();
         } else {
             return;
@@ -171,18 +178,39 @@ void main() {
     Positions[gid].xyz = p.xyz + v.xyz * dt + 0.5 * dt * dta;
     Velocities[gid].xyz = (v + dta) * 0.9999;
 
-    if (Positions[gid].x > 170) {
+    /*if (Positions[gid].x > 200) {
         InitializeSpawnPositionAndVelocity();
-    }
+    }*/
 
     UpdateColor();
 
     if (Positions[gid].z < minZ) {
-        Positions[gid].z = minZ;
-        Velocities[gid].z *= bounceFactor;
-        if (Velocities[gid].z > 1) {
-            Velocities[gid].x += (gold_noise(randSeed + 20) - 0.5) * 4;
-            Velocities[gid].y += (gold_noise(randSeed + 21) - 0.5) * 4;
+        Positions[gid].z = minZ + 0.001;
+        if (abs(Velocities[gid].z) > 10) {
+            /*Velocities[gid].x += (rand(randSeed + gid + 20) - 0.4) * 20;
+            Velocities[gid].y += (rand(randSeed + gid + 21) - 0.4) * 20;*/
+            float theta = (rand(randSeed + gid + 21) - 0.5) * 0.6 * PI;
+            float xyFactor = 1.0;
+            float bounceFac = -1.0;
+            if (rand(randSeed + gid + 20) < 0.2) {
+                theta = PI + (rand(randSeed + gid + 24) - 0.5) * 1.4 * PI;
+                xyFactor = 0.6;
+                bounceFac = -0.6;
+                if (rand(randSeed + gid + 25) < 0.4) {
+                    theta = PI + (rand(randSeed + gid + 23) - 0.5) * 0.4 * PI;
+                    xyFactor = 0.9;
+                    bounceFac = -0.5;
+                }
+            }
+            
+            Velocities[gid].xy = (rotationMatrix(up, theta) * Velocities[gid]).xy;
+            Velocities[gid].xy *= xyFactor;
+            Velocities[gid].z *= bounceFac;
+            Velocities[gid].z *= pow(rand(randSeed + gid + 22) - 0.11, 6);
+            Velocities[gid].z += rand(randSeed + gid + 23);
+        } else {
+            Velocities[gid].z *= -0.25;
+            Velocities[gid].xy *= 0.8;
         }
     }
     if (Positions[gid].z > maxZ) {
@@ -206,7 +234,7 @@ void main() {
         Velocities[gid].y *= bounceFactor;
     }
 
-    if (Lifetimes[gid] > 15) {
+    if (Lifetimes[gid] > 9.5) {
         Die();
     }
 

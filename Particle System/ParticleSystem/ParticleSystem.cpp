@@ -342,7 +342,7 @@ int main(int argc, char* argv[]) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         camera.Update();
-        glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.1f, 10000.0f);  // FOV, aspect, near, far
+        glm::mat4 proj = glm::perspective(3.14f / 2, screenWidth / (float)screenHeight, 0.4f, 10000.0f);  // FOV, aspect, near, far
         ShaderManager::ApplyToEachRenderShader(
             [proj](ShaderAttributes attributes) -> void { glUniformMatrix4fv(attributes.projection, 1, GL_FALSE, glm::value_ptr(proj)); },
             PROJ_SHADER_FUNCTION_ID);
@@ -375,7 +375,7 @@ int main(int argc, char* argv[]) {
         // Render particles!!
         ShaderManager::ActivateShader(ShaderManager::ParticleShader);
         glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
-        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 20);
+        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 30);
         particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering

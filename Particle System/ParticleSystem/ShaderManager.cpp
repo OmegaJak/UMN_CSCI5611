@@ -66,6 +66,7 @@ void ShaderManager::InitEnvironmentShaderAttributes() {
     GLint uniView = glGetUniformLocation(EnvironmentShader.Program, "view");
     GLint uniProj = glGetUniformLocation(EnvironmentShader.Program, "proj");
     GLint uniModel = glGetUniformLocation(EnvironmentShader.Program, "model");
+    GLint uniSpecFactor = glGetUniformLocation(EnvironmentShader.Program, "specFactor");
 
     EnvironmentShader.Attributes.position = posAttrib;
     EnvironmentShader.Attributes.normals = normAttrib;
@@ -75,6 +76,7 @@ void ShaderManager::InitEnvironmentShaderAttributes() {
     EnvironmentShader.Attributes.view = uniView;
     EnvironmentShader.Attributes.projection = uniProj;
     EnvironmentShader.Attributes.model = uniModel;
+    EnvironmentShader.Attributes.specFactor = uniSpecFactor;
 
     EnvironmentShader.Attributes.screenSize = EnvironmentShader.Attributes.spriteSize = -1;
 
@@ -111,7 +113,7 @@ void ShaderManager::InitParticleShaderAttributes() {
 
     // Make it obvious that these values aren't used
     ParticleShader.Attributes.normals = ParticleShader.Attributes.texCoord = ParticleShader.Attributes.texID =
-        ParticleShader.Attributes.model = -1;
+        ParticleShader.Attributes.model = ParticleShader.Attributes.specFactor = -1;
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);

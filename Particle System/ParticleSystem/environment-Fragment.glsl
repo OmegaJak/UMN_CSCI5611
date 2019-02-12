@@ -12,6 +12,7 @@ uniform sampler2D tex0;
 uniform sampler2D tex1;
 
 uniform int texID;
+uniform float specFactor;
 
 const float ambient = .25;
 void main() {
@@ -33,8 +34,6 @@ void main() {
     vec3 reflectDir = reflect(viewDir, normal);
     float spec = max(dot(reflectDir, lightDir), 0.0);
     if (dot(-lightDir, normal) <= 0.0) spec = 0;  // No highlight if we are not facing the light
-    float specFactor = 0.7;
-    if (texID > -1) specFactor = 0.1;
     vec3 specC = specFactor * vec3(1.0, 1.0, 1.0) * pow(spec, 4);
     vec3 oColor = ambC + diffuseC + specC;
     outColor = vec4(oColor, 1);

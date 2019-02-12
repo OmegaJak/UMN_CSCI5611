@@ -15,4 +15,5 @@ class Environment {
     GameObject _gravityCenter;
     Model* _cubeModel;
     Model* _sphereModel;
+    Model* _tubeModel;
 };
