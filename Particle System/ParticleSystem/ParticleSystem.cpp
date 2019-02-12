@@ -267,6 +267,10 @@ int main(int argc, char* argv[]) {
     glm::vec3 lastMouseWorldCoord;
     float fullGravityAcceleration = 1.0f;
     float gravityCenterDistance = 10;
+
+    if (ParticleManager::PARTICLE_MODE == Water_Mode) {
+        fullGravityAcceleration = 0;
+    }
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -413,7 +417,7 @@ int main(int argc, char* argv[]) {
                   << " frames "
                   << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord
                   << " | simulationSpeed: " << particleManager.particleParameters.simulationSpeed
-                  << " | gravityFactor: " << particleManager.particleParameters.gravityAccelerationFactor;
+                  << " | gravityFactor: " << particleManager.particleParameters.gravityAccelerationFactor << "/" << fullGravityAcceleration;
         SDL_SetWindowTitle(window, debugText.str().c_str());
 
         // Render the environment

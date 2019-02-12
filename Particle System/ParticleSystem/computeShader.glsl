@@ -320,6 +320,12 @@ void main() {
         ColorMods[gid].a = max(ColorMods[gid].a, 0);
     }
 
+    if (ParticleMode == WaterMode && length(Positions[gid].xyz - GravityCenter) < 4.75) {
+        vec3 toParticle = normalize(Positions[gid].xyz - GravityCenter);
+        //Positions[gid].xyz = Positions[gid].xyz + toParticle * 5;
+        Velocities[gid].xyz = toParticle * max(length(Velocities[gid].xyz) * 0.5, 4.75);
+    }
+
     if (Positions[gid].z < minZ && !(ParticleMode == FireballMode && FireballState == Spawning)) {
         Positions[gid].z = minZ + 0.001;
         if (abs(Velocities[gid].z) > 10) {
