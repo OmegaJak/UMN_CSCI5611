@@ -19,21 +19,26 @@ const char* INSTRUCTIONS =
     "This is a particle system made by Jackson Kruger for CSCI 5611 at the University of Minnesota.\n"
     "\n"
     "Controls:\n"
-    "WASD - Player movement\n"
-    "Space - Player jump\n"
-    "Left ctrl - Player crouch\n"
-    "g - Drop key\n"
+    "Left click - Set position of center of gravity (for free & water modes) and apply force towards center of gravity\n"
+    "WASD - Camera movement\n"
+    "R/F - Camera up/down"
+    "Space - Pause/Play simulation\n"
+    "g - Launch sun (in sunlauncher mode)\n"
+    "+/- - Increase/decrease various parameters, depending on the other keys held:\n"
+    "   None - Modify simulation speed\n"
+    "   Ctrl - Modify the factor that controls how attractive/repulsive the gravity center is\n"
+    "   Alt - Modify the distance of the gravity center from the camera\n"
+    "Shift - Makes the above parameter modifications go faster, or makes the camera movement faster\n"
     "Esc - Quit\n"
     "F11 - Fullscreen\n"
     "***************\n";
 
 const char* USAGE =
     "Usage:\n"
-    "-w \'width\'x\'height\'\n"
-    "   Example: -m 800x600\n"
-    "-m map\n"
-    "   This map must be in the root of the directory the game's being run from.\n"
-    "   Example: -m map1.txt\n";
+    "Only one input is accepted, a single number. The number has the following meaning:\n"
+    "0 - Free Mode\n"
+    "1 - Sunlauncher Mode\n"
+    "2 - Water mode\n";
 
 #include "glad.h"  //Include order can matter here
 #if defined(__APPLE__) || defined(__linux__)
@@ -75,6 +80,8 @@ std::ostream& operator<<(std::ostream& out, glm::vec3 const& vec) {
 // https://learnopengl.com/In-Practice/Debugging
 void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
                               const void* userParam) {
+    return;  // Disable
+
     // ignore non-significant error/warning codes
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
 
@@ -168,12 +175,14 @@ int main(int argc, char* argv[]) {
             mode = Water_Mode;
         } else {
             printf("Unrecognized particle mode \"%i\" specified. Defaulting to free mode\n", num);
+            printf(USAGE);
             mode = Free_Mode;
         }
 
         ParticleManager::PARTICLE_MODE = mode;
     } else {
         printf("No particle mode specified. Defaulting to water mode");
+        printf(USAGE);
         ParticleManager::PARTICLE_MODE = Water_Mode;
     }
 

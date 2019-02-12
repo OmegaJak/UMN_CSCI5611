@@ -38,7 +38,7 @@ ParticleManager::ParticleManager() {
         5000.f,  // max
         0.f,
         0.f,
-        0.f,            // layer pos
+        0.f,            // Player pos
         1.0f,           // sim speed
         0.0f,           // grav factor
         0.1f,           // spawn rate - particles per second
