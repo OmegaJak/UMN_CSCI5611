@@ -27,14 +27,24 @@ ParticleMode ParticleManager::PARTICLE_MODE;
 ParticleManager::ParticleManager() {
     srand(time(NULL));
     particleParameters = particleParams{
-        50.f,         50.f,    50.f,    // gravity center
-        -5000.f,      -5000.f, 0.f,     // min
-        5000.f,       5000.f,  5000.f,  // max
-        1.0f,                           // sim speed
-        0.0f,                           // grav factor
-        0.1f,                           // spawn rate - particles per second
-        1.f,                            // Time
-        PARTICLE_MODE                   // Which particle sim to do
+        50.f,
+        50.f,
+        50.f,  // gravity center
+        -5000.f,
+        -5000.f,
+        0.f,  // min
+        5000.f,
+        5000.f,
+        5000.f,  // max
+        0.f,
+        0.f,
+        0.f,            // layer pos
+        1.0f,           // sim speed
+        0.0f,           // grav factor
+        0.1f,           // spawn rate - particles per second
+        1.f,            // Time
+        PARTICLE_MODE,  // Which particle sim to do
+        0,              // Fireball state
     };
     if (PARTICLE_MODE == Free_Mode) {
         particleParameters.minZ = -5000.f;
@@ -132,7 +142,9 @@ int ParticleManager::GetNumParticles() {
     return NUM_PARTICLES;
 }
 
-void ParticleManager::UpdateComputeParameters() {
+void ParticleManager::UpdateComputeParameters(float dt) {
+    UpdateFireball(dt);
+
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
     particleParams *params = (particleParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(particleParams), bufMask);
     *params = particleParameters;
@@ -142,6 +154,54 @@ void ParticleManager::UpdateComputeParameters() {
     atomics *currentAtomics = (atomics *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(atomics), GL_MAP_READ_BIT);
     numAlive = NUM_PARTICLES - currentAtomics->numDead;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+}
+
+void ParticleManager::SpawnFireball(const glm::vec3 &position, const glm::vec3 &velocity) {
+    if (particleParameters.fireballState == 0) {  // Fireball is waiting to spawn
+        fireballPositions[0] = position;
+        fireballVelocities[0] = velocity;
+        fireballAlive[0] = true;
+        particleParameters.fireballState = 1;  // Move to the spawning stage
+        computesSinceFireballEvent = 0;
+    }
+}
+
+void ParticleManager::UpdateFireball(float dt) {
+    if (particleParameters.fireballState == 1) {  // Spawning
+        if (computesSinceFireballEvent > 0) {
+            // Now that all particles have spawned to the fireball, transition to the fireball movement stage
+            particleParameters.fireballState = 2;
+            computesSinceFireballEvent = 0;
+        }
+    }
+
+    if (particleParameters.fireballState == 2) {  // Moving
+        dt *= particleParameters.simulationSpeed;
+        glm::vec3 dta = dt * glm::vec3(0, 0, -9.8);
+        fireballPositions[0] = fireballPositions[0] + fireballVelocities[0] * dt + 0.5f * dt * dta;
+        fireballVelocities[0] = fireballVelocities[0] + dta;
+
+        if (fireballPositions[0].z < 0) {
+            // The fireball hit the ground, so transition to the exploding stage
+            fireballPositions[0].z = 0;
+            particleParameters.fireballState = 3;
+            computesSinceFireballEvent = 0;
+        }
+
+        particleParameters.centerX = fireballPositions[0].x;
+        particleParameters.centerY = fireballPositions[0].y;
+        particleParameters.centerZ = fireballPositions[0].z;
+    }
+
+    if (particleParameters.fireballState == 3 && computesSinceFireballEvent > 0) {  // Exploding and ready to reset
+        // Go back to the waiting stage
+        particleParameters.fireballState = 0;
+    }
+
+    if (particleParameters.fireballState == 1 || particleParameters.fireballState == 3) {
+        // Spawning or exploding and waiting for compute to transition
+        computesSinceFireballEvent++;
+    }
 }
 
 void ParticleManager::RenderParticles(float dt) {

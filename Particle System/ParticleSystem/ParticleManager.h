@@ -6,11 +6,13 @@ struct particleParams {
     GLfloat centerX, centerY, centerZ;
     GLfloat minX, minY, minZ;
     GLfloat maxX, maxY, maxZ;
+    GLfloat playerX, playerY, playerZ;
     GLfloat simulationSpeed;
     GLfloat gravityAccelerationFactor;
     GLfloat spawnRate;
     GLfloat time;
     GLint particleMode;
+    GLint fireballState;  // 0 = waiting to spawn, 1 = spawning, 2 = spawned and moving, 3 = exploding
 };
 
 struct position {
@@ -29,7 +31,7 @@ struct atomics {
     GLint numDead;
 };
 
-enum ParticleMode { Free_Mode = 0, Magic_Mode = 1, Water_Mode = 2 };
+enum ParticleMode { Free_Mode = 0, Fireball_Mode = 1, Water_Mode = 2 };
 
 class ParticleManager {
    public:
@@ -38,7 +40,8 @@ class ParticleManager {
     void RenderParticles(float dt);
     void InitGL();
     int GetNumParticles();
-    void UpdateComputeParameters();
+    void UpdateComputeParameters(float dt);
+    void SpawnFireball(const glm::vec3& position, const glm::vec3& velocity);
 
     float genRate = 1000;
 
@@ -61,4 +64,13 @@ class ParticleManager {
     // 2 = waterfall
 
     particleParams particleParameters;
+
+    glm::vec3 fireballPositions[1];
+    glm::vec3 fireballVelocities[1];
+    bool fireballAlive[1];
+
+   private:
+    void UpdateFireball(float dt);
+
+    int computesSinceFireballEvent = 0;
 };

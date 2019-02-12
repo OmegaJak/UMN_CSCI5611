@@ -162,7 +162,7 @@ int main(int argc, char* argv[]) {
             mode = Free_Mode;
         } else if (num == 1) {
             printf("magic\n");
-            mode = Magic_Mode;
+            mode = Fireball_Mode;
         } else if (num == 2) {
             printf("water\n");
             mode = Water_Mode;
@@ -293,6 +293,12 @@ int main(int argc, char* argv[]) {
                     } else {
                         particleManager.particleParameters.simulationSpeed = 1;
                     }
+                } else if (windowEvent.key.keysym.sym == SDLK_g) {
+                    float fireballSpawnVel = 12;
+                    float spawnDistance = 5;
+                    glm::vec3 normalizedForward = glm::normalize(camera.GetForward());
+                    particleManager.SpawnFireball(camera.GetPosition() + normalizedForward * spawnDistance,
+                                                  normalizedForward * fireballSpawnVel);
                 }
             }
 
@@ -338,7 +344,7 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
-        particleManager.UpdateComputeParameters();
+        particleManager.UpdateComputeParameters(deltaTime);
 
         // Particles compute shader //
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, particleManager.posSSbo);
@@ -375,7 +381,13 @@ int main(int argc, char* argv[]) {
             [proj](ShaderAttributes attributes) -> void { glUniformMatrix4fv(attributes.projection, 1, GL_FALSE, glm::value_ptr(proj)); },
             PROJ_SHADER_FUNCTION_ID);
 
-        if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
+        glm::vec3 playerPos = camera.GetPosition();
+        particleManager.particleParameters.playerX = playerPos.x;
+        particleManager.particleParameters.playerY = playerPos.y;
+        particleManager.particleParameters.playerZ = playerPos.z;
+
+        if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) &&
+            ParticleManager::PARTICLE_MODE != Fireball_Mode) {
             lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, gravityCenterDistance);
             environment.SetGravityCenterPosition(lastMouseWorldCoord);
             particleManager.particleParameters.centerX = lastMouseWorldCoord.x;

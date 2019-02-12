@@ -28,11 +28,13 @@ layout(std430, binding = 4) buffer Parameters {
     vec3 GravityCenter;
     float minX, minY, minZ;
     float maxX, maxY, maxZ;
+    float PlayerX, PlayerY, PlayerZ;
     float SimulationSpeed;
     float GravityFactor;
     float SpawnRate;
     float Time;
     int ParticleMode;
+    int FireballState;
 };
 
 // layout(binding = 6, offset = 0) uniform atomic_uint NumDead;
@@ -46,9 +48,16 @@ const float timestep = 0.01;
 const float G = 50;
 const float bounceFactor = -0.7;
 
+// -- Poor man's enums -- //
 const int FreeMode = 0;
-const int MagicMode = 1;
+const int FireballMode = 1;
 const int WaterMode = 2;
+
+const int Waiting = 0;
+const int Spawning = 1;
+const int Moving = 2;
+const int Exploding = 3;
+// -- -- //
 
 uint gid = -1;
 float randSeed = 1;
@@ -75,6 +84,14 @@ float rand(float n) {
 }
 // -- -- //
 
+vec3 RandomVelocity(float seed, float multiplier) {
+    float noiseX = (rand(seed + 105) - 0.5);
+    float noiseY = (rand(seed + 106) - 0.5);
+    float noiseZ = (rand(seed + 107) - 0.5);
+
+    return vec3(noiseX, noiseY, noiseZ) * multiplier;
+}
+
 // -- Generate rotation matrix around axis -- //
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle) {
@@ -92,15 +109,21 @@ mat4 rotationMatrix(vec4 axis, float angle) {
     return rotationMatrix(axis.xyz, angle);
 }
 // -- -- //
+const float startingTemperature = 10;
+const float outerHeatThreshold = 50;
+const float coreHeatThreshold = 10;
 
 void SetSpawnColor() {
     if (ParticleMode == WaterMode) {
         ColorMods[gid].r = ColorMods[gid].g = gold_noise(randSeed + 9) / 8.0;
         ColorMods[gid].b = -(gold_noise(randSeed + 10) / 10.0);
-    } else { // pick a random color otherwise
+    } else if (ParticleMode == FreeMode) { 
         Colors[gid].r = rand(gid);
         Colors[gid].g = rand(gid + 1);
         Colors[gid].b = rand(gid + 2);
+    } else if (ParticleMode == FireballMode) {
+        float randDarkness = rand(randSeed + gid + 57) * 0.3;
+        Colors[gid] = vec4(1 - randDarkness, 0, 0, 1);
     }
 }
 
@@ -115,6 +138,31 @@ void UpdateColor() {
         float foaminess = max(heightFoaminess - slownessBlueness, 0);
 
         Colors[gid].xyz = vec3(foaminess, foaminess, 1) + ColorMods[gid].rgb;
+    } else if (ParticleMode == FireballMode) {
+        if (FireballState == Moving) {
+            vec3 toPlayer = normalize(vec3(PlayerX, PlayerY, PlayerZ) - Positions[gid].xyz);
+            vec3 posOnSphere = normalize(Positions[gid].xyz - GravityCenter);
+            float angle = dot(toPlayer, posOnSphere);
+            angle = max(angle, 0.0001); // clamp to zero below threshold to avoid bad edge behavior
+
+            Colors[gid].xyz = vec3(1, angle, pow(angle, 10));
+        } else if (FireballState == Exploding || FireballState == Waiting) {
+            float thresh = coreHeatThreshold;
+            float distFromCenter = length(Positions[gid].xyz - GravityCenter);
+            float closenessToCenter = max((thresh - distFromCenter) / thresh, 0);
+            float r = 1;
+            if (closenessToCenter == 0) {
+                r = max(r - (distFromCenter - thresh) / outerHeatThreshold, 0.1);
+            }
+
+            // 0 to 1, increases as particle cools
+            //float coolness = (startingTemperature - ColorMods[gid].a) / startingTemperature;
+            float heat = pow(ColorMods[gid].a / startingTemperature, 2);
+            
+            Colors[gid].rgb = vec3(r, closenessToCenter, closenessToCenter / 4);
+            Colors[gid].rgb -= ColorMods[gid].rgb;
+            Colors[gid].rgb *= vec3(heat, heat, heat);
+        }
     }
 
     if (Lifetimes[gid] < 0) {
@@ -133,6 +181,7 @@ const float cylindricalHeight = -4;
 const float launchAngle = -PI / 2;
 const float launchVelocity = 30;
 const vec4 up = vec4(0, 0, 1, 1);
+
 
 void SpawnInDisk() {
     float r = diskRadius * sqrt(gold_noise(vec2(gid, gid), randSeed));
@@ -179,22 +228,15 @@ vec3 RandomPointInCube(float sideLength, vec3 center) {
     return vec3(x, y, z) + center;
 }
 
-vec3 RandomVelocity(float seed, float multiplier) {
-    float noiseX = (rand(seed + 105) - 0.5);
-    float noiseY = (rand(seed + 106) - 0.5);
-    float noiseZ = (rand(seed + 107) - 0.5);
-
-    return vec3(noiseX, noiseY, noiseZ) * multiplier;
-}
-
 void InitializeSpawnPositionAndVelocity() {
     if (ParticleMode == WaterMode) {
         SpawnInDisk();
     } else if (ParticleMode == FreeMode) {
         Positions[gid] = vec4(RandomPointInCube(100, vec3(50, 50, 50)), 1);
         Velocities[gid] = vec4(RandomVelocity(randSeed + gid, 4), 1);
-    } else if (ParticleMode == MagicMode) {
-        Positions[gid] = vec4(RandomPointInSphere(50, vec3(50, 50, 100)), 1);
+    } else if (ParticleMode == FireballMode && FireballState == Spawning) {
+        Positions[gid] = vec4(RandomPointInSphere(3, vec3(GravityCenter.x, GravityCenter.y, GravityCenter.z)), 1);
+        Velocities[gid] = vec4(Positions[gid].xyz - GravityCenter, 1); // Store the position relative to the center in velocity to maintain constant relative position
     }
 }
 
@@ -220,8 +262,25 @@ void main() {
     randSeed = Time;
     float dt = timestep * SimulationSpeed;
 
+    if (ParticleMode == FireballMode) {
+        if (FireballState == Spawning) {
+            Spawn();
+        } else if (FireballState == Exploding) {
+            /*Colors[gid] = vec4(1, 1, 0, 1);*/
+
+            vec3 vel = RandomPointInSphere(pow(length(Velocities[gid].xyz), 2) * 3, vec3(0, 0, 0));
+            vel.z = abs(vel.z);
+            Velocities[gid] = vec4(vel, 1);
+
+            vec3 randColor = RandomVelocity(gid + randSeed, 0.15);
+            randColor.r /= 2;
+            ColorMods[gid].rgb = randColor;
+            ColorMods[gid].a = startingTemperature; // Use the alpha channel of ColorMods to store the 'temperature' of the particle
+        }
+    }
+
     if (Lifetimes[gid] < 0) {
-        if (ParticleMode == FreeMode || ParticleMode == MagicMode) {
+        if (ParticleMode == FreeMode) {
             Spawn();
         } else if (ParticleMode == 2 && dt > 0 && gold_noise(vec2(gid, gid), randSeed + 3) < 0.000000000001) {
             Spawn();
@@ -235,22 +294,33 @@ void main() {
         }
     }
 
-    vec3 p = Positions[gid].xyz;
-    vec3 v = Velocities[gid].xyz;
-    float r = length(GravityCenter - Positions[gid].xyz) / 5;
-    vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
-    if (ParticleMode == WaterMode) {
-        a += vec3(0, 0, -9.86);
+    if (ParticleMode == FireballMode && FireballState == Moving) {
+        Positions[gid].xyz = GravityCenter + Velocities[gid].xyz;
+    } else if (ParticleMode != FireballMode || FireballState != Spawning) {
+        vec3 p = Positions[gid].xyz;
+        vec3 v = Velocities[gid].xyz;
+        float r = length(GravityCenter - Positions[gid].xyz) / 5;
+        vec3 a = (normalize(GravityCenter - Positions[gid].xyz) * (G + (1 / pow(r, 2)))) * GravityFactor;
+        if (ParticleMode != FreeMode) {
+            a += vec3(0, 0, -9.86);
+        }
+
+        vec3 dta = dt * a;
+
+        Positions[gid].xyz = p.xyz + v.xyz * dt + 0.5 * dt * dta;
+        Velocities[gid].xyz = (v + dta) * 0.9999;
     }
-
-    vec3 dta = dt * a;
-
-    Positions[gid].xyz = p.xyz + v.xyz * dt + 0.5 * dt * dta;
-    Velocities[gid].xyz = (v + dta) * 0.9999;
 
     UpdateColor();
 
-    if (Positions[gid].z < minZ) {
+    if (ParticleMode == FireballMode && (FireballState == Exploding || FireballState == Waiting)) {
+        float distFromCenter = length(Positions[gid].xyz - GravityCenter);
+        ColorMods[gid].a -= dt * max(distFromCenter / 50, 0.8);
+
+        ColorMods[gid].a = max(ColorMods[gid].a, 0);
+    }
+
+    if (Positions[gid].z < minZ && !(ParticleMode == FireballMode && FireballState == Spawning)) {
         Positions[gid].z = minZ + 0.001;
         if (abs(Velocities[gid].z) > 10) {
             float theta = (rand(randSeed + gid + 21) - 0.5) * 0.6 * PI;
@@ -307,5 +377,9 @@ void main() {
 
     if (Lifetimes[gid] > despawnTime) {
         Die();
+    }
+
+    if (ParticleMode == FireballMode && (FireballState == Exploding || FireballState == Waiting) && (ColorMods[gid].a == 0 || length(Colors[gid].rgb) < 0.05)) {
+        Die();    
     }
 }
