@@ -1,0 +1,9 @@
+# Visual Studio generated .clang-format file
+
+BasedOnStyle: Google
+IndentWidth: 4
+AllowShortFunctionsOnASingleLine: Empty
+ColumnLimit: 140
+IncludeCategories:
+  - Regex:           'pch.h'
+    Priority:        -1
