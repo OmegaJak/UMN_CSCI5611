@@ -37,8 +37,8 @@ class ClothManager {
     static const int MAX_NUM_SPRINGS = 128;
     static const int WORK_GROUP_SIZE = 64;
 
-    static const int NUM_MASSES = 8;
-    static const int NUM_SPRINGS = 7;
+    static const int NUM_MASSES = 32;
+    static const int NUM_SPRINGS = 31;
 
     static GLuint posSSbo;
     static GLuint velSSbo;

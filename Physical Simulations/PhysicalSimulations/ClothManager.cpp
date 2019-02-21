@@ -33,7 +33,8 @@ void ClothManager::InitGL() {
     printf("Initializing mass positions...\n");
     position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
-        positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1), 20, 0};
+        int threadnum = i / 8;  // Deliberate int div for floor
+        positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 5, 20, 0};
     }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
@@ -45,11 +46,13 @@ void ClothManager::InitGL() {
 
     printf("Initializing springs...\n");
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
-    massParameters[0].isFixed = true;
-    massParameters[0].mass = 10;
-    for (int i = 1; i < NUM_MASSES; i++) {
-        massParameters[i].isFixed = false;
-        massParameters[i].mass = 0.1;
+    for (int i = 0; i < NUM_MASSES; i++) {
+        if (i % 8 == 0) {
+            massParameters[i].isFixed = true;
+        } else {
+            massParameters[i].isFixed = false;
+        }
+        massParameters[i].mass = 0.2;
     }
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -86,8 +89,13 @@ void ClothManager::InitGL() {
 
     // Initialize springs
     for (int i = 0; i < NUM_SPRINGS; i++) {
-        springs[i].massOneIndex = i;
-        springs[i].massTwoIndex = i + 1;
+        if (i % 8 == 7) {
+            springs[i].massOneIndex = -1;
+            springs[i].massTwoIndex = -1;
+        } else {
+            springs[i].massOneIndex = i;
+            springs[i].massTwoIndex = i + 1;
+        }
     }
     for (int i = NUM_SPRINGS; i < MAX_NUM_SPRINGS; i++) {
         springs[i].massOneIndex = -1;

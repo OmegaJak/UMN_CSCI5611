@@ -36,7 +36,7 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 uint gid;
 const float timestep = 0.00001;
 const float ks = 25;
-const float kd = 5;
+const float kd = 10;
 const float restLength = 1;
 const vec3 gravity = vec3(0, 0, -9.8);
 
