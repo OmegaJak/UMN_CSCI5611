@@ -46,9 +46,27 @@ void main() {
         return;
     }
 
+    float dt = timestep;
     int massOne = Springs[gid].x;
     int massTwo = Springs[gid].y;
-    float dt = timestep;
+    
+    // Things that would happen after a memory barrier, but I just place them at the start instead. Separate invocations act as the barrier
+    if (!MassParameters[massOne].isFixed) {
+        Positions[massOne] += NewVelocities[massOne] * dt;
+    } else {
+        NewVelocities[massOne].xyz = vec3(0, 0, 0);
+    }
+
+    if (!MassParameters[massTwo].isFixed) {
+        Positions[massTwo] += NewVelocities[massTwo] * dt;
+    } else {
+        NewVelocities[massTwo].xyz = vec3(0, 0, 0);
+    }
+
+    Velocities[massOne] = NewVelocities[massOne];
+    Velocities[massTwo] = NewVelocities[massTwo];
+    //
+
 
     vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
     float length = length(toMassOneFromTwo);
@@ -66,21 +84,4 @@ void main() {
 
     NewVelocities[massOne].xyz += massOneAcc * dt;
     NewVelocities[massTwo].xyz += massTwoAcc * dt;
-
-    barrier();
-
-    if (!MassParameters[massOne].isFixed) {
-        Positions[massOne] += NewVelocities[massOne] * dt;
-    } else {
-        NewVelocities[massOne].xyz = vec3(0, 0, 0);
-    }
-
-    if (!MassParameters[massTwo].isFixed) {
-        Positions[massTwo] += NewVelocities[massTwo] * dt;
-    } else {
-        NewVelocities[massTwo].xyz = vec3(0, 0, 0);
-    }
-
-    Velocities[massOne] = NewVelocities[massOne];
-    Velocities[massTwo] = NewVelocities[massTwo];
 }
