@@ -23,3 +23,6 @@ const float ABSOLUTE_TOLERANCE = 0.00001f;
 
 const int VIEW_SHADER_FUNCTION_ID = 1;
 const int PROJ_SHADER_FUNCTION_ID = 2;
+
+const float COMPUTE_SHADER_TIMESTEP = 0.00001;
+const float IDEAL_FRAMERATE = 60;

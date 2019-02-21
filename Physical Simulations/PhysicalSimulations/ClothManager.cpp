@@ -122,7 +122,8 @@ void ClothManager::ExecuteComputeShader() const {
 
     glUseProgram(ShaderManager::ClothComputeShader);
 
-    for (int i = 0; i < 100; i++) {
+    auto computationsPerFrame = int(((1 / IDEAL_FRAMERATE) / COMPUTE_SHADER_TIMESTEP) + 0.5);
+    for (int i = 0; i < computationsPerFrame; i++) {
         glDispatchCompute(MAX_NUM_SPRINGS / WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
