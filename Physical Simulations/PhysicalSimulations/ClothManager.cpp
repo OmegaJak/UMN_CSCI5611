@@ -44,7 +44,9 @@ void ClothManager::InitGL() {
     printf("Initializing springs...\n");
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, MAX_NUM_SPRINGS * sizeof(spring), bufMask);
     massParameters[0].isFixed = true;
+    massParameters[0].mass = 10;
     massParameters[1].isFixed = false;
+    massParameters[1].mass = 0.5;
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////

@@ -42,7 +42,6 @@ void Environment::CreateEnvironment() {
     gameObject = GameObject(_sphereModel);
     gameObject.SetTextureIndex(UNTEXTURED);
     gameObject.SetColor(glm::vec3(0, 0, 0));
-    gameObject.SetScale(5, 5, 5);
     gameObject.SetPosition(glm::vec3(10, 10, 0));
     _gameObjects.push_back(gameObject);
     _gravityCenterIndex = _gameObjects.size() - 1;

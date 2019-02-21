@@ -35,7 +35,7 @@ layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 uint gid;
 const float timestep = 0.0001;
-const float ks = 50;
+const float ks = 100;
 const float kd = 1;
 const float restLength = 7;
 const vec3 gravity = vec3(0, 0, -9.8);
@@ -61,8 +61,8 @@ void main() {
     float dampForce = -kd * (v1 - v2);
     float force = springForce + dampForce;
 
-    vec3 massOneAcc = gravity + 0.5 * force * toMassOneFromTwo;
-    vec3 massTwoAcc = gravity - 0.5 * force * toMassOneFromTwo;
+    vec3 massOneAcc = gravity + 0.5 * force * toMassOneFromTwo / MassParameters[massOne].mass;
+    vec3 massTwoAcc = gravity - 0.5 * force * toMassOneFromTwo / MassParameters[massTwo].mass;
 
     NewVelocities[massOne].xyz += massOneAcc * dt;
     NewVelocities[massTwo].xyz += massTwoAcc * dt;
