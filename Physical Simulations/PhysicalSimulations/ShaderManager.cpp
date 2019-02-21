@@ -1,30 +1,30 @@
 #include <fstream>
+#include "ClothManager.h"
 #include "Constants.h"
-#include "ParticleManager.h"
 #include "ShaderManager.h"
 
-GLuint ShaderManager::ParticleComputeShader;
+GLuint ShaderManager::ClothComputeShader;
 RenderShader ShaderManager::EnvironmentShader;
-RenderShader ShaderManager::ParticleShader;
+RenderShader ShaderManager::ClothShader;
 
 std::map<int, std::function<void(ShaderAttributes)>> ShaderManager::ShaderFunctions;
 
 void ShaderManager::InitShaders() {
     EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
-    ParticleShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
-    ParticleComputeShader = CompileComputeShaderProgram("computeShader.glsl");
+    // ClothShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
+    ClothComputeShader = CompileComputeShaderProgram("clothComputeShader.glsl");
 
     InitEnvironmentShaderAttributes();
-    InitParticleShaderAttributes();
+    // InitClothShaderAttributes();
 }
 
 void ShaderManager::Cleanup() {
     glDeleteProgram(EnvironmentShader.Program);
-    glDeleteProgram(ParticleComputeShader);
-    glDeleteProgram(ParticleShader.Program);
+    glDeleteProgram(ClothComputeShader);
+    glDeleteProgram(ClothShader.Program);
 
     glDeleteVertexArrays(1, &EnvironmentShader.VAO);
-    glDeleteVertexArrays(1, &ParticleShader.VAO);
+    glDeleteVertexArrays(1, &ClothShader.VAO);
 }
 
 void ShaderManager::ActivateShader(RenderShader shader) {
@@ -79,44 +79,32 @@ void ShaderManager::InitEnvironmentShaderAttributes() {
     EnvironmentShader.Attributes.model = uniModel;
     EnvironmentShader.Attributes.specFactor = uniSpecFactor;
 
-    EnvironmentShader.Attributes.screenSize = EnvironmentShader.Attributes.spriteSize = EnvironmentShader.Attributes.particleMode = -1;
-
     glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
 }
 
-void ShaderManager::InitParticleShaderAttributes() {
-    glGenVertexArrays(1, &ParticleShader.VAO);
-    glBindVertexArray(ParticleShader.VAO);
+void ShaderManager::InitClothShaderAttributes() {
+    glGenVertexArrays(1, &ClothShader.VAO);
+    glBindVertexArray(ClothShader.VAO);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ParticleManager::posSSbo);
-    glBindBuffer(GL_ARRAY_BUFFER, ParticleManager::posSSbo);
-    GLint posAttrib = glGetAttribLocation(ParticleShader.Program, "position");
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ClothManager::posSSbo);
+    glBindBuffer(GL_ARRAY_BUFFER, ClothManager::posSSbo);
+    GLint posAttrib = glGetAttribLocation(ClothShader.Program, "position");
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(position), (void*)0);
     glEnableVertexAttribArray(posAttrib);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ParticleManager::colSSbo);
-    glBindBuffer(GL_ARRAY_BUFFER, ParticleManager::colSSbo);
-    GLint colAttrib = glGetAttribLocation(ParticleShader.Program, "inColor");
-    glVertexAttribPointer(colAttrib, 4, GL_FLOAT, GL_FALSE, sizeof(color), (void*)0);
-    glEnableVertexAttribArray(colAttrib);
+    GLint uniView = glGetUniformLocation(ClothShader.Program, "view");
+    GLint uniProj = glGetUniformLocation(ClothShader.Program, "proj");
+    GLint uniScreenSize = glGetUniformLocation(ClothShader.Program, "screenSize");
+    GLint uniSpriteSize = glGetUniformLocation(ClothShader.Program, "spriteSize");
+    GLint uniParticleMode = glGetUniformLocation(ClothShader.Program, "particleMode");
 
-    GLint uniView = glGetUniformLocation(ParticleShader.Program, "view");
-    GLint uniProj = glGetUniformLocation(ParticleShader.Program, "proj");
-    GLint uniScreenSize = glGetUniformLocation(ParticleShader.Program, "screenSize");
-    GLint uniSpriteSize = glGetUniformLocation(ParticleShader.Program, "spriteSize");
-    GLint uniParticleMode = glGetUniformLocation(ParticleShader.Program, "particleMode");
-
-    ParticleShader.Attributes.position = posAttrib;
-    ParticleShader.Attributes.color = colAttrib;
-    ParticleShader.Attributes.view = uniView;
-    ParticleShader.Attributes.projection = uniProj;
-    ParticleShader.Attributes.screenSize = uniScreenSize;
-    ParticleShader.Attributes.spriteSize = uniSpriteSize;
-    ParticleShader.Attributes.particleMode = uniParticleMode;
+    ClothShader.Attributes.position = posAttrib;
+    ClothShader.Attributes.view = uniView;
+    ClothShader.Attributes.projection = uniProj;
 
     // Make it obvious that these values aren't used
-    ParticleShader.Attributes.normals = ParticleShader.Attributes.texCoord = ParticleShader.Attributes.texID =
-        ParticleShader.Attributes.model = ParticleShader.Attributes.specFactor = -1;
+    ClothShader.Attributes.normals = ClothShader.Attributes.texCoord = ClothShader.Attributes.texID = ClothShader.Attributes.model =
+        ClothShader.Attributes.specFactor = -1;
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -252,41 +240,6 @@ GLuint ShaderManager::CompileComputeShaderProgram(const std::string& compute_sha
 
 // Create a NULL-terminated string by reading the provided file
 char* ShaderManager::ReadShaderSource(const char* shaderFile) {
-    // FILE* fp;
-    // long length;
-    // char* buffer;
-
-    //// open the file containing the text of the shader code
-    // fopen_s(&fp, shaderFile, "r");
-
-    //// check for errors in opening the file
-    // if (fp == NULL) {
-    //    printf("Can't open shader source file %s\n", shaderFile);
-    //    return NULL;
-    //}
-
-    //// determine the file size
-    // fseek(fp, 0, SEEK_END);  // move position indicator to the end of the file;
-    // length = ftell(fp);      // return the value of the current position
-
-    //// allocate a buffer with the indicated number of bytes, plus one
-    // buffer = new char[length + 1];
-    // for (int i = 0; i < length + 1; i++) {
-    //    buffer[i] = '\0';
-    //}
-
-    //// read the appropriate number of bytes from the file
-    // fseek(fp, 0, SEEK_SET);        // move position indicator to the start of the file
-    // fread(buffer, 1, length, fp);  // read all of the bytes
-
-    //// append a NULL character to indicate the end of the string
-    // buffer[length] = '\0';
-
-    //// close the file
-    // fclose(fp);
-
-    //// return the string
-    // return buffer;
     // https://stackoverflow.com/questions/18816126/c-read-the-whole-file-in-buffer
     std::ifstream file(shaderFile, std::ios::binary | std::ios::ate);
     std::streamsize size = file.tellg();
@@ -306,7 +259,7 @@ void ShaderManager::VerifyShaderCompiled(GLuint shader) {
     GLint compiled;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
     if (!compiled) {
-        printf("Vertex shader failed to compile:\n");
+        printf("Shader failed to compile:\n");
         if (DEBUG_ON) {
             GLint logMaxSize, logLength;
             glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logMaxSize);

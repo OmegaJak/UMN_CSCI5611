@@ -13,10 +13,7 @@ typedef struct {
     GLint model;
     GLint color;
     GLint texID;
-    GLint screenSize;
-    GLint spriteSize;
     GLint specFactor;
-    GLint particleMode;
 } ShaderAttributes;
 
 typedef struct {
@@ -33,12 +30,12 @@ class ShaderManager {
     static void ApplyToEachRenderShader(std::function<void(ShaderAttributes)> Func, int shaderFunctionId);
 
     static RenderShader EnvironmentShader;
-    static RenderShader ParticleShader;
-    static GLuint ParticleComputeShader;
+    static RenderShader ClothShader;
+    static GLuint ClothComputeShader;
 
    private:
     static void InitEnvironmentShaderAttributes();
-    static void InitParticleShaderAttributes();
+    static void InitClothShaderAttributes();
     static GLuint CompileRenderShader(const std::string& vertex_shader_file, const std::string& fragment_shader_file);
     static GLuint CompileComputeShaderProgram(const std::string& compute_shader_file);
     static char* ReadShaderSource(const char* shaderFile);

@@ -8,10 +8,10 @@
 #include <iostream>
 #include <sstream>
 #include "Camera.h"
+#include "ClothManager.h"
 #include "Constants.h"
 #include "Environment.h"
 #include "GameObject.h"
-#include "ParticleManager.h"
 #include "ShaderManager.h"
 #include "TextureManager.h"
 const char* INSTRUCTIONS =
@@ -80,8 +80,6 @@ std::ostream& operator<<(std::ostream& out, glm::vec3 const& vec) {
 // https://learnopengl.com/In-Practice/Debugging
 void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message,
                               const void* userParam) {
-    return;  // Disable
-
     // ignore non-significant error/warning codes
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
 
@@ -160,32 +158,6 @@ void GLAPIENTRY glDebugOutput(GLenum source, GLenum type, GLuint id, GLenum seve
 }
 
 int main(int argc, char* argv[]) {
-    if (argc > 1) {
-        int num = atoi(argv[1]);
-        ParticleMode mode;
-        printf("Operating in particle mode: ");
-        if (num == 0) {
-            printf("free\n");
-            mode = Free_Mode;
-        } else if (num == 1) {
-            printf("magic\n");
-            mode = Fireball_Mode;
-        } else if (num == 2) {
-            printf("water\n");
-            mode = Water_Mode;
-        } else {
-            printf("Unrecognized particle mode \"%i\" specified. Defaulting to free mode\n", num);
-            printf(USAGE);
-            mode = Free_Mode;
-        }
-
-        ParticleManager::PARTICLE_MODE = mode;
-    } else {
-        printf("No particle mode specified. Defaulting to water mode");
-        printf(USAGE);
-        ParticleManager::PARTICLE_MODE = Water_Mode;
-    }
-
     SDL_Init(SDL_INIT_VIDEO);  // Initialize Graphics (for OpenGL)
 
     // Ask SDL to get a recent version of OpenGL (3.2 or greater)
@@ -237,7 +209,7 @@ int main(int argc, char* argv[]) {
 
     Environment environment = Environment();
 
-    ParticleManager particleManager = ParticleManager();
+    ClothManager clothManager = ClothManager();
 
     ModelManager::InitVBO();
 
@@ -265,12 +237,7 @@ int main(int argc, char* argv[]) {
     int mouseX = -1, mouseY = -1;
     float normalizedMouseX, normalizedMouseY;
     glm::vec3 lastMouseWorldCoord;
-    float fullGravityAcceleration = 1.0f;
     float gravityCenterDistance = 10;
-
-    if (ParticleManager::PARTICLE_MODE == Water_Mode) {
-        fullGravityAcceleration = 0;
-    }
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -291,26 +258,12 @@ int main(int argc, char* argv[]) {
                     if (windowEvent.key.keysym.sym == SDLK_MINUS) modAmount *= -1;
 
                     if (windowEvent.key.keysym.mod & KMOD_CTRL) {
-                        fullGravityAcceleration += modAmount;
+                        // fullGravityAcceleration += modAmount;
                     } else if (windowEvent.key.keysym.mod & KMOD_ALT) {
                         gravityCenterDistance += modAmount;
                     } else {
-                        particleManager.particleParameters.simulationSpeed += modAmount;
+                        // particleManager.particleParameters.simulationSpeed += modAmount;
                     }
-                }
-            } else if (windowEvent.type == SDL_KEYDOWN) {
-                if (windowEvent.key.keysym.sym == SDLK_SPACE) {
-                    if (particleManager.particleParameters.simulationSpeed > 0) {
-                        particleManager.particleParameters.simulationSpeed = 0;
-                    } else {
-                        particleManager.particleParameters.simulationSpeed = 1;
-                    }
-                } else if (windowEvent.key.keysym.sym == SDLK_g) {
-                    float fireballSpawnVel = 12;
-                    float spawnDistance = 5;
-                    glm::vec3 normalizedForward = glm::normalize(camera.GetForward());
-                    particleManager.SpawnFireball(camera.GetPosition() + normalizedForward * spawnDistance,
-                                                  normalizedForward * fireballSpawnVel);
                 }
             }
 
@@ -344,8 +297,6 @@ int main(int argc, char* argv[]) {
         float deltaTime = time - lastTickTime;
         lastTickTime = time;
 
-        particleManager.particleParameters.time = time;
-
         frameCounter++;
         lastFramesTimer += deltaTime;
         if (frameCounter >= framesPerSample) {
@@ -356,34 +307,11 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
-        particleManager.UpdateComputeParameters(deltaTime);
-
-        // Particles compute shader //
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, particleManager.posSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, particleManager.velSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, particleManager.colSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, particleManager.paramSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, particleManager.lifeSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, particleManager.atomicsSSbo);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, particleManager.colModSSbo);
-
-        glUseProgram(ShaderManager::ParticleComputeShader);
-        glDispatchCompute(ParticleManager::NUM_PARTICLES / ParticleManager::WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, 0);
-        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, 0);
+        clothManager.UpdateComputeParameters(deltaTime);
+        clothManager.ExecuteComputeShader();
 
         // Rendering //
         float gray = 0.6f;
-        if (ParticleManager::PARTICLE_MODE == Free_Mode) {
-            gray = 0.1f;
-        }
         glClearColor(gray, gray, gray, 1.0f);  // Clear the screen to default color
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -393,44 +321,27 @@ int main(int argc, char* argv[]) {
             [proj](ShaderAttributes attributes) -> void { glUniformMatrix4fv(attributes.projection, 1, GL_FALSE, glm::value_ptr(proj)); },
             PROJ_SHADER_FUNCTION_ID);
 
-        glm::vec3 playerPos = camera.GetPosition();
-        particleManager.particleParameters.playerX = playerPos.x;
-        particleManager.particleParameters.playerY = playerPos.y;
-        particleManager.particleParameters.playerZ = playerPos.z;
-
-        if ((SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) &&
-            ParticleManager::PARTICLE_MODE != Fireball_Mode) {
+        if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
             lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, gravityCenterDistance);
             environment.SetGravityCenterPosition(lastMouseWorldCoord);
-            particleManager.particleParameters.centerX = lastMouseWorldCoord.x;
-            particleManager.particleParameters.centerY = lastMouseWorldCoord.y;
-            particleManager.particleParameters.centerZ = lastMouseWorldCoord.z;
-            particleManager.particleParameters.gravityAccelerationFactor = fullGravityAcceleration;
-        } else {
-            particleManager.particleParameters.gravityAccelerationFactor = 0.0f;
         }
 
         stringstream debugText;
-        debugText << fixed << setprecision(3) << particleManager.GetNumParticles() << " total " /*<< particleManager.numAlive << " alive "*/
+        debugText << fixed << setprecision(3) << clothManager.NUM_SPRINGS << " springs, " << clothManager.NUM_MASSES << " masses "
                   << " | " << lastAverageFrameTime << " per frame (" << lastFramerate << "FPS) average over " << framesPerSample
                   << " frames "
-                  << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord
-                  << " | simulationSpeed: " << particleManager.particleParameters.simulationSpeed
-                  << " | gravityFactor: " << particleManager.particleParameters.gravityAccelerationFactor << "/" << fullGravityAcceleration;
+                  << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord;
         SDL_SetWindowTitle(window, debugText.str().c_str());
+
+        // Render particles!!
+        // ShaderManager::ActivateShader(ShaderManager::ClothShader);
+        // TextureManager::Update(ShaderManager::ClothShader.Program);
+        clothManager.RenderParticles(deltaTime, &environment);
 
         // Render the environment
         ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
         TextureManager::Update(ShaderManager::EnvironmentShader.Program);
         environment.UpdateAll();
-
-        // Render particles!!
-        ShaderManager::ActivateShader(ShaderManager::ParticleShader);
-        TextureManager::Update(ShaderManager::ParticleShader.Program);
-        glUniform2f(ShaderManager::ParticleShader.Attributes.screenSize, 10, 10);
-        glUniform1f(ShaderManager::ParticleShader.Attributes.spriteSize, 30);
-        glUniform1i(ShaderManager::ParticleShader.Attributes.particleMode, ParticleManager::PARTICLE_MODE);
-        particleManager.RenderParticles(deltaTime);
 
         SDL_GL_SwapWindow(window);  // Double buffering
     }
