@@ -19,6 +19,7 @@ GLuint ClothManager::massSSbo;
 GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
+    srand(time(NULL));
     simParameters = simParams{1};
     InitGL();
 }
@@ -31,22 +32,25 @@ void ClothManager::InitGL() {
 
     printf("Initializing mass positions...\n");
     position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), bufMask);
-    positions[0] = {0, 0, 10, 0};
-    positions[1] = {0, 0, 5, 0};
+    for (int i = 0; i < NUM_MASSES; i++) {
+        positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1), 20, 0};
+    }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
 
     // Prepare the mass parameters buffer //
     glGenBuffers(1, &massSSbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, massSSbo);
-    glBufferData(GL_SHADER_STORAGE_BUFFER, MAX_NUM_SPRINGS * sizeof(spring), nullptr, GL_STATIC_DRAW);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_MASSES * sizeof(massParams), nullptr, GL_STATIC_DRAW);
 
     printf("Initializing springs...\n");
-    massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, MAX_NUM_SPRINGS * sizeof(spring), bufMask);
+    massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
     massParameters[0].isFixed = true;
     massParameters[0].mass = 10;
-    massParameters[1].isFixed = false;
-    massParameters[1].mass = 0.5;
+    for (int i = 1; i < NUM_MASSES; i++) {
+        massParameters[i].isFixed = false;
+        massParameters[i].mass = 0.1;
+    }
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
@@ -81,10 +85,11 @@ void ClothManager::InitGL() {
     spring *springs = (spring *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, MAX_NUM_SPRINGS * sizeof(spring), bufMask);
 
     // Initialize springs
-    int numSprings = 1;
-    springs[0].massOneIndex = 0;
-    springs[0].massTwoIndex = 1;
-    for (int i = numSprings; i < MAX_NUM_SPRINGS; i++) {
+    for (int i = 0; i < NUM_SPRINGS; i++) {
+        springs[i].massOneIndex = i;
+        springs[i].massTwoIndex = i + 1;
+    }
+    for (int i = NUM_SPRINGS; i < MAX_NUM_SPRINGS; i++) {
         springs[i].massOneIndex = -1;
         springs[i].massTwoIndex = -1;
     }

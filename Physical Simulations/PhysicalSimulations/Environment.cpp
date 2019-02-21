@@ -50,6 +50,7 @@ void Environment::CreateEnvironment() {
         gameObject = GameObject(_sphereModel);
         gameObject.SetTextureIndex(UNTEXTURED);
         gameObject.SetColor(glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0));
+        gameObject.SetScale(0.5, 0.5, 0.5);
         mass = gameObject;
     }
 }
