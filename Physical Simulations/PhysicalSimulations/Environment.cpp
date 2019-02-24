@@ -1,5 +1,6 @@
 #include "ClothManager.h"
 #include "Environment.h"
+#include "Utils.h"
 
 Environment::Environment() {
     _cubeModel = new Model("models/cube.txt");
@@ -49,7 +50,7 @@ void Environment::CreateEnvironment() {
     for (auto& mass : masses) {
         gameObject = GameObject(_sphereModel);
         gameObject.SetTextureIndex(UNTEXTURED);
-        gameObject.SetColor(glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0));
+        gameObject.SetColor(glm::vec3((101 + Utils::randBetween(0, 50)) / 255.0, 67 / 255.0, 33 / 255.0));
         gameObject.SetScale(0.5, 0.5, 0.5);
         mass = gameObject;
     }

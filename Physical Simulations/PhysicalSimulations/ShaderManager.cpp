@@ -11,7 +11,7 @@ std::map<int, std::function<void(ShaderAttributes)>> ShaderManager::ShaderFuncti
 
 void ShaderManager::InitShaders() {
     EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
-    // ClothShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
+    // ClothShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
     ClothComputeShader = CompileComputeShaderProgram("clothComputeShader.glsl");
 
     InitEnvironmentShaderAttributes();
@@ -86,10 +86,8 @@ void ShaderManager::InitClothShaderAttributes() {
     glGenVertexArrays(1, &ClothShader.VAO);
     glBindVertexArray(ClothShader.VAO);
 
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ClothManager::posSSbo);
-    glBindBuffer(GL_ARRAY_BUFFER, ClothManager::posSSbo);
     GLint posAttrib = glGetAttribLocation(ClothShader.Program, "position");
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(position), (void*)0);
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(posAttrib);
 
     GLint uniView = glGetUniformLocation(ClothShader.Program, "view");

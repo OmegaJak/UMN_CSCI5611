@@ -33,7 +33,7 @@ void ClothManager::InitGL() {
     printf("Initializing mass positions...\n");
     position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
-        int threadnum = i / 8;  // Deliberate int div for floor
+        int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
         positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 5, 20, 0};
     }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -47,12 +47,12 @@ void ClothManager::InitGL() {
     printf("Initializing springs...\n");
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
-        if (i % 8 == 0) {
+        if (i % MASSES_PER_THREAD == 0) {
             massParameters[i].isFixed = true;
         } else {
             massParameters[i].isFixed = false;
         }
-        massParameters[i].mass = 0.2;
+        massParameters[i].mass = 0.1;
     }
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -88,18 +88,30 @@ void ClothManager::InitGL() {
     spring *springs = (spring *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, MAX_NUM_SPRINGS * sizeof(spring), bufMask);
 
     // Initialize springs
-    for (int i = 0; i < NUM_SPRINGS; i++) {
-        if (i % 8 == 7) {
-            springs[i].massOneIndex = -1;
-            springs[i].massTwoIndex = -1;
-        } else {
-            springs[i].massOneIndex = i;
-            springs[i].massTwoIndex = i + 1;
+    int baseIndex = 0;
+    for (int i = 0; i < NUM_VERTICAL_SPRINGS; i++, baseIndex++) {
+        springs[i].massOneIndex = baseIndex;
+        springs[i].massTwoIndex = baseIndex + 1;
+
+        if ((i + 1) % (MASSES_PER_THREAD - 1) == 0 && i != 0) {
+            baseIndex++;  // Don't link ends of threads
         }
+    }
+    for (int i = NUM_VERTICAL_SPRINGS; i < NUM_SPRINGS; i++) {
+        int k = i - NUM_VERTICAL_SPRINGS;
+        int threadIndex = k / MASSES_PER_THREAD;  // Int div for floor
+        int offset = k % MASSES_PER_THREAD;
+
+        springs[i].massOneIndex = threadIndex * MASSES_PER_THREAD + offset;
+        springs[i].massTwoIndex = (threadIndex + 1) * MASSES_PER_THREAD + offset;
     }
     for (int i = NUM_SPRINGS; i < MAX_NUM_SPRINGS; i++) {
         springs[i].massOneIndex = -1;
         springs[i].massTwoIndex = -1;
+    }
+
+    for (int i = 0; i < NUM_SPRINGS; i++) {
+        printf("Spring %i: (%i, %i)\n", i, springs[i].massOneIndex, springs[i].massTwoIndex);
     }
 
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);

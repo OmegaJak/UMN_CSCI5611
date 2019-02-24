@@ -2,6 +2,8 @@
 #extension GL_ARB_compute_shader : enable
 #extension GL_ARB_shader_storage_buffer_object : enable
 
+precision highp float;
+
 layout(std140, binding = 1) buffer Pos {
     vec4 Positions[];
 };
@@ -37,8 +39,16 @@ uint gid;
 const float timestep = 0.00001;
 const float ks = 25;
 const float kd = 10;
-const float restLength = 1;
+const float restLength = 5;
 const vec3 gravity = vec3(0, 0, -9.8);
+
+bool isNan(vec3 v) {
+    return isnan(v.x) || isnan(v.y) || isnan(v.z);
+}
+
+bool isInf(vec3 v) {
+    return isinf(v.x) || isinf(v.y) || isinf(v.z);
+}
 
 void main() {
     gid = gl_GlobalInvocationID.x;
@@ -51,22 +61,21 @@ void main() {
     int massTwo = Springs[gid].y;
     
     // Things that would happen after a memory barrier, but I just place them at the start instead. Separate invocations act as the barrier
+    Velocities[massOne] = NewVelocities[massOne];
+    Velocities[massTwo] = NewVelocities[massTwo];
+
     if (!MassParameters[massOne].isFixed) {
-        Positions[massOne] += NewVelocities[massOne] * dt;
+        Positions[massOne] += Velocities[massOne] * dt;
     } else {
-        NewVelocities[massOne].xyz = vec3(0, 0, 0);
+        Velocities[massOne].xyz = vec3(0, 0, 0);
     }
 
     if (!MassParameters[massTwo].isFixed) {
-        Positions[massTwo] += NewVelocities[massTwo] * dt;
+        Positions[massTwo] += Velocities[massTwo] * dt;
     } else {
-        NewVelocities[massTwo].xyz = vec3(0, 0, 0);
+        Velocities[massTwo].xyz = vec3(0, 0, 0);
     }
-
-    Velocities[massOne] = NewVelocities[massOne];
-    Velocities[massTwo] = NewVelocities[massTwo];
     //
-
 
     vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
     float length = length(toMassOneFromTwo);
@@ -85,6 +94,9 @@ void main() {
 
     vec3 massOneAcc = gravity + 0.5 * force * toMassOneFromTwo / MassParameters[massOne].mass;
     vec3 massTwoAcc = gravity - 0.5 * force * toMassOneFromTwo / MassParameters[massTwo].mass;
+
+    if (isInf(massOneAcc) || isNan(massOneAcc)) massOneAcc = vec3(0, 0, 0);
+    if (isInf(massTwoAcc) || isNan(massTwoAcc)) massTwoAcc = vec3(0, 0, 0);
 
     NewVelocities[massOne].xyz += massOneAcc * dt;
     NewVelocities[massTwo].xyz += massTwoAcc * dt;
