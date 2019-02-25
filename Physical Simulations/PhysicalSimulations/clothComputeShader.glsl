@@ -37,9 +37,9 @@ layout(std430, binding = 4) buffer Parameters {
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 uint gid;
-const float ks = 15;
-const float kd = 4;
-const float restLength = 2;
+const float ks = 30;
+const float kd = 20;
+const float restLength = 1;
 const vec3 gravity = vec3(0, 0, -9.8);
 
 bool isNan(vec3 v) {

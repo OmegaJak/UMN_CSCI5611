@@ -36,8 +36,8 @@ void ClothManager::InitGL() {
     for (int i = 0; i < NUM_MASSES; i++) {
         int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
         // positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 3, 20, 0};
-        float y = threadnum * 2 + Utils::randBetween(0, 1);
-        float x = (i % MASSES_PER_THREAD) * 2.3 + Utils::randBetween(0, 1);
+        float y = threadnum * 1 + Utils::randBetween(0, 1);
+        float x = (i % MASSES_PER_THREAD) * 2 + Utils::randBetween(0, 1);
         positions[i] = {x, y, 20.0f, 1.0f};
     }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -56,7 +56,7 @@ void ClothManager::InitGL() {
         } else {
             massParameters[i].isFixed = false;
         }
-        massParameters[i].mass = 0.1;
+        massParameters[i].mass = 0.05;
 
         // Initialize connections
         unsigned int left = 95683, right = 95683, up = 95683, down = 95683;

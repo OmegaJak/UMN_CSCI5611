@@ -37,8 +37,8 @@ class ClothManager {
 
     static const int WORK_GROUP_SIZE = 32;
 
-    static const int NUM_THREADS = 8;
-    static const int MASSES_PER_THREAD = 8;
+    static const int NUM_THREADS = 32;
+    static const int MASSES_PER_THREAD = 16;
     static const int NUM_MASSES = NUM_THREADS * MASSES_PER_THREAD;
 
     static GLuint posSSbo;
