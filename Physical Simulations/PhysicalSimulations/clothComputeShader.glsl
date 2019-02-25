@@ -30,13 +30,12 @@ layout(std430, binding = 3) buffer Sprg {
 };
 
 layout(std430, binding = 4) buffer Parameters {
-    int idk;
+    float dt;
 };
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 
 uint gid;
-const float timestep = 0.00001;
 const float ks = 25;
 const float kd = 10;
 const float restLength = 5;
@@ -56,25 +55,24 @@ void main() {
         return;
     }
 
-    float dt = timestep;
     int massOne = Springs[gid].x;
     int massTwo = Springs[gid].y;
     
     // Things that would happen after a memory barrier, but I just place them at the start instead. Separate invocations act as the barrier
-    Velocities[massOne] = NewVelocities[massOne];
-    Velocities[massTwo] = NewVelocities[massTwo];
+    //Velocities[massOne] = NewVelocities[massOne];
+    //Velocities[massTwo] = NewVelocities[massTwo];
 
-    if (!MassParameters[massOne].isFixed) {
-        Positions[massOne] += Velocities[massOne] * dt;
-    } else {
-        Velocities[massOne].xyz = vec3(0, 0, 0);
-    }
+    //if (!MassParameters[massOne].isFixed) {
+    //    Positions[massOne] += Velocities[massOne] * dt;
+    //} else {
+    //    Velocities[massOne].xyz = vec3(0, 0, 0);
+    //}
 
-    if (!MassParameters[massTwo].isFixed) {
-        Positions[massTwo] += Velocities[massTwo] * dt;
-    } else {
-        Velocities[massTwo].xyz = vec3(0, 0, 0);
-    }
+    //if (!MassParameters[massTwo].isFixed) {
+    //    Positions[massTwo] += Velocities[massTwo] * dt;
+    //} else {
+    //    Velocities[massTwo].xyz = vec3(0, 0, 0);
+    //}
     //
 
     vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
@@ -97,6 +95,8 @@ void main() {
 
     if (isInf(massOneAcc) || isNan(massOneAcc)) massOneAcc = vec3(0, 0, 0);
     if (isInf(massTwoAcc) || isNan(massTwoAcc)) massTwoAcc = vec3(0, 0, 0);
+
+    barrier();
 
     NewVelocities[massOne].xyz += massOneAcc * dt;
     NewVelocities[massTwo].xyz += massTwoAcc * dt;

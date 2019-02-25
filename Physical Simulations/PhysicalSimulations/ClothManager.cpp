@@ -20,7 +20,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{1};
+    simParameters = simParams{0};
     InitGL();
 }
 
@@ -34,7 +34,10 @@ void ClothManager::InitGL() {
     position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
         int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
-        positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 5, 20, 0};
+        // positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 5, 20, 0};
+        float y = threadnum * 5;
+        float x = (i % MASSES_PER_THREAD) * 5;
+        positions[i] = {x, y, 20.0f, 1.0f};
     }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
@@ -138,6 +141,9 @@ void ClothManager::UpdateComputeParameters(float dt) {
 }
 
 void ClothManager::ExecuteComputeShader() const {
+    assert(NUM_MASSES % WORK_GROUP_SIZE == 0);
+    assert(MAX_NUM_SPRINGS % WORK_GROUP_SIZE == 0);
+
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, posSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, velSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, springSSbo);
@@ -145,16 +151,17 @@ void ClothManager::ExecuteComputeShader() const {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newVelSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, massSSbo);
 
-    glUseProgram(ShaderManager::ClothComputeShader);
-
     auto computationsPerFrame = int(((1 / IDEAL_FRAMERATE) / COMPUTE_SHADER_TIMESTEP) + 0.5);
     for (int i = 0; i < computationsPerFrame; i++) {
-        glDispatchCompute(MAX_NUM_SPRINGS / WORK_GROUP_SIZE, 1, 1);  // Compute shader!!
+        glUseProgram(ShaderManager::ClothComputeShader);
+        glDispatchCompute(1, 1, 1);                      // Run the cloth sim compute shader
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);  // Wait for all to finish
+
+        // Copy the temp vel values to the velocities, run integration to update positions
+        glUseProgram(ShaderManager::IntegratorComputeShader);
+        glDispatchCompute(NUM_MASSES / WORK_GROUP_SIZE, 1, 1);
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
     }
-
-    // Copy the new velocity values to the velocities buffer
-    // glCopyBufferSubData(newVelSSbo, velSSbo, 0, 0, NUM_MASSES * sizeof(velocity));
 
     int numSSbos = 6;
     for (int i = 0; i < numSSbos; i++) {
@@ -165,10 +172,22 @@ void ClothManager::ExecuteComputeShader() const {
 void ClothManager::RenderParticles(float dt, Environment *environment) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSbo);
     position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), GL_MAP_READ_BIT);
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 
     for (int i = 0; i < NUM_MASSES; i++) {
         environment->masses[i].SetPosition(glm::vec3(positions[i].x, positions[i].y, positions[i].z));
     }
 
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, springSSbo);
+    spring *springs = (spring *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_SPRINGS * sizeof(spring), GL_MAP_READ_BIT);
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+
+    for (int i = 0; i < NUM_SPRINGS; i++) {
+        auto massOne = springs[i].massOneIndex;
+        auto massTwo = springs[i].massTwoIndex;
+
+        environment->springs[i].SetPosition(glm::vec3((positions[massOne].x + positions[massTwo].x) / 2,
+                                                      (positions[massOne].y + positions[massTwo].y) / 2,
+                                                      (positions[massOne].z + positions[massTwo].z) / 2));
+    }
 }

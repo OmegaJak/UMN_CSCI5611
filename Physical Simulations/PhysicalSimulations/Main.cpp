@@ -265,6 +265,14 @@ int main(int argc, char* argv[]) {
                         // particleManager.particleParameters.simulationSpeed += modAmount;
                     }
                 }
+            } else if (windowEvent.type == SDL_KEYDOWN) {
+                if (windowEvent.key.keysym.sym == SDLK_SPACE) {
+                    if (clothManager.simParameters.dt > 0) {
+                        clothManager.simParameters.dt = 0;
+                    } else {
+                        clothManager.simParameters.dt = COMPUTE_SHADER_TIMESTEP;
+                    }
+                }
             }
 
             if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_RIGHT)) {  // Right click is down

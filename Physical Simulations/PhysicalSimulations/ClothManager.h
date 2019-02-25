@@ -5,7 +5,7 @@
 class Environment;
 
 struct simParams {
-    GLint idk;
+    GLfloat dt;
 };
 
 struct position {
@@ -35,7 +35,7 @@ class ClothManager {
     void ExecuteComputeShader() const;
 
     static const int MAX_NUM_SPRINGS = 128;
-    static const int WORK_GROUP_SIZE = 64;
+    static const int WORK_GROUP_SIZE = 32;
 
     static const int NUM_THREADS = 4;
     static const int MASSES_PER_THREAD = 8;

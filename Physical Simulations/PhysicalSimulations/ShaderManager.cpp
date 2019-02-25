@@ -4,6 +4,7 @@
 #include "ShaderManager.h"
 
 GLuint ShaderManager::ClothComputeShader;
+GLuint ShaderManager::IntegratorComputeShader;
 RenderShader ShaderManager::EnvironmentShader;
 RenderShader ShaderManager::ClothShader;
 
@@ -13,6 +14,7 @@ void ShaderManager::InitShaders() {
     EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
     // ClothShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
     ClothComputeShader = CompileComputeShaderProgram("clothComputeShader.glsl");
+    IntegratorComputeShader = CompileComputeShaderProgram("integratorComputeShader.glsl");
 
     InitEnvironmentShaderAttributes();
     // InitClothShaderAttributes();
@@ -21,6 +23,7 @@ void ShaderManager::InitShaders() {
 void ShaderManager::Cleanup() {
     glDeleteProgram(EnvironmentShader.Program);
     glDeleteProgram(ClothComputeShader);
+    glDeleteProgram(IntegratorComputeShader);
     glDeleteProgram(ClothShader.Program);
 
     glDeleteVertexArrays(1, &EnvironmentShader.VAO);
