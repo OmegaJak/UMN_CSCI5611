@@ -32,6 +32,7 @@ layout(std430, binding = 6) buffer MssPrps {
 
 layout(std430, binding = 4) buffer Parameters {
     float dt;
+    int computationStage;
 };
 
 layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
@@ -75,15 +76,33 @@ vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
     return massOneAcc;
 }
 
-void main() {
-    gid = gl_GlobalInvocationID.x;
-
+void CalculateForces() {
     vec3 leftAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.left);
     vec3 rightAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.right);
     vec3 upAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.up);
     vec3 downAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.down);
-    
+
     vec3 acc = gravity + leftAcc + rightAcc + upAcc + downAcc;
 
     NewVelocities[gid].xyz += acc * dt;
+}
+
+void ApplyForces() {
+    Velocities[gid].xyz = NewVelocities[gid].xyz;
+
+    if (!MassParameters[gid].isFixed) {
+        Positions[gid].xyz += Velocities[gid].xyz * dt;
+    } else {
+        Velocities[gid].xyz = vec3(0, 0, 0);
+    }
+}
+
+void main() {
+    gid = gl_GlobalInvocationID.x;
+
+    if (computationStage == 0) {
+        CalculateForces();
+    } else if (computationStage == 1) {
+        ApplyForces();
+    }
 }

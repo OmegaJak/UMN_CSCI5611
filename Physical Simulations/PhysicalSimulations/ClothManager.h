@@ -6,6 +6,7 @@ class Environment;
 
 struct simParams {
     GLfloat dt;
+    GLint computationStage;  // 0 = force calculation, 1 = force application
 };
 
 struct position {
@@ -32,8 +33,8 @@ class ClothManager {
 
     void RenderParticles(float dt, Environment *environment);
     void InitGL();
-    void UpdateComputeParameters(float dt);
-    void ExecuteComputeShader() const;
+    void UpdateComputeParameters() const;
+    void ExecuteComputeShader();
 
     static const int WORK_GROUP_SIZE = 32;
 

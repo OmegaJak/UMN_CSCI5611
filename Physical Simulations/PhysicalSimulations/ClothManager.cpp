@@ -19,7 +19,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0};
+    simParameters = simParams{0, 0};
     InitGL();
 }
 
@@ -118,30 +118,35 @@ void ClothManager::InitGL() {
     printf("Done initializing buffers\n");
 }
 
-void ClothManager::UpdateComputeParameters(float dt) {
+void ClothManager::UpdateComputeParameters() const {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
     simParams *params = (simParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, sizeof(simParams), bufMask);
     *params = simParameters;
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
 }
 
-void ClothManager::ExecuteComputeShader() const {
+void ClothManager::ExecuteComputeShader() {
+    UpdateComputeParameters();
+
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, posSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, velSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newVelSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, massSSbo);
 
+    glUseProgram(ShaderManager::ClothComputeShader);
+
     auto computationsPerFrame = int(((1 / IDEAL_FRAMERATE) / COMPUTE_SHADER_TIMESTEP) + 0.5);
     for (int i = 0; i < computationsPerFrame; i++) {
-        glUseProgram(ShaderManager::ClothComputeShader);
+        simParameters.computationStage = 0;
+        UpdateComputeParameters();
         glDispatchCompute(NUM_MASSES / WORK_GROUP_SIZE, 1, 1);  // Run the cloth sim compute shader
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);         // Wait for all to finish
 
-        // Copy the temp vel values to the velocities, run integration to update positions
-        glUseProgram(ShaderManager::IntegratorComputeShader);
+        simParameters.computationStage = 1;
+        UpdateComputeParameters();
         glDispatchCompute(NUM_MASSES / WORK_GROUP_SIZE, 1, 1);
-        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+        glMemoryBarrier(GL_SHADER_STORAGE_BUFFER);
     }
 
     int numSSbos = 6;

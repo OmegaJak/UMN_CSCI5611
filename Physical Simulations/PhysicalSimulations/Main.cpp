@@ -315,7 +315,6 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
-        clothManager.UpdateComputeParameters(deltaTime);
         clothManager.ExecuteComputeShader();
 
         // Rendering //
