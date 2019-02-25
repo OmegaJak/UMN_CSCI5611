@@ -16,29 +16,30 @@ layout(std140, binding = 5) buffer NewVel {
     vec4 NewVelocities[];
 };
 
+struct Connections {
+    uint left, right, up, down;
+};
+
 struct MassParams {
     bool isFixed;
     float mass;
+    Connections connections;
 };
 
 layout(std430, binding = 6) buffer MssPrps {
     MassParams MassParameters[];
 };
 
-layout(std430, binding = 3) buffer Sprg {
-    ivec2 Springs[];
-};
-
 layout(std430, binding = 4) buffer Parameters {
     float dt;
 };
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+layout(local_size_x = 32, local_size_y = 1, local_size_z = 1) in;
 
 uint gid;
-const float ks = 25;
-const float kd = 10;
-const float restLength = 5;
+const float ks = 15;
+const float kd = 4;
+const float restLength = 2;
 const vec3 gravity = vec3(0, 0, -9.8);
 
 bool isNan(vec3 v) {
@@ -49,31 +50,8 @@ bool isInf(vec3 v) {
     return isinf(v.x) || isinf(v.y) || isinf(v.z);
 }
 
-void main() {
-    gid = gl_GlobalInvocationID.x;
-    if (Springs[gid].x < 0 || Springs[gid].y < 0) {
-        return;
-    }
-
-    int massOne = Springs[gid].x;
-    int massTwo = Springs[gid].y;
-    
-    // Things that would happen after a memory barrier, but I just place them at the start instead. Separate invocations act as the barrier
-    //Velocities[massOne] = NewVelocities[massOne];
-    //Velocities[massTwo] = NewVelocities[massTwo];
-
-    //if (!MassParameters[massOne].isFixed) {
-    //    Positions[massOne] += Velocities[massOne] * dt;
-    //} else {
-    //    Velocities[massOne].xyz = vec3(0, 0, 0);
-    //}
-
-    //if (!MassParameters[massTwo].isFixed) {
-    //    Positions[massTwo] += Velocities[massTwo] * dt;
-    //} else {
-    //    Velocities[massTwo].xyz = vec3(0, 0, 0);
-    //}
-    //
+vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
+    if (massOne == 95683 || massTwo == 95683) return vec3(0, 0, 0);
 
     vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
     float length = length(toMassOneFromTwo);
@@ -90,14 +68,22 @@ void main() {
     float dampForce = -kd * (v1 - v2);
     float force = springForce + dampForce;
 
-    vec3 massOneAcc = gravity + 0.5 * force * toMassOneFromTwo / MassParameters[massOne].mass;
-    vec3 massTwoAcc = gravity - 0.5 * force * toMassOneFromTwo / MassParameters[massTwo].mass;
+    vec3 massOneAcc = 0.5 * force * toMassOneFromTwo / MassParameters[massOne].mass;
 
     if (isInf(massOneAcc) || isNan(massOneAcc)) massOneAcc = vec3(0, 0, 0);
-    if (isInf(massTwoAcc) || isNan(massTwoAcc)) massTwoAcc = vec3(0, 0, 0);
 
-    barrier();
+    return massOneAcc;
+}
 
-    NewVelocities[massOne].xyz += massOneAcc * dt;
-    NewVelocities[massTwo].xyz += massTwoAcc * dt;
+void main() {
+    gid = gl_GlobalInvocationID.x;
+
+    vec3 leftAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.left);
+    vec3 rightAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.right);
+    vec3 upAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.up);
+    vec3 downAcc = getAccelerationFromSpringConnection(gid, MassParameters[gid].connections.down);
+    
+    vec3 acc = gravity + leftAcc + rightAcc + upAcc + downAcc;
+
+    NewVelocities[gid].xyz += acc * dt;
 }

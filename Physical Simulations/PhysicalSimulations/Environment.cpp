@@ -17,10 +17,6 @@ void Environment::UpdateAll() {
     for (auto gameObject : masses) {
         gameObject.Update();
     }
-
-    for (auto gameObject : springs) {
-        gameObject.Update();
-    }
 }
 
 void Environment::SetGravityCenterPosition(const glm::vec3& position) {
@@ -56,14 +52,6 @@ void Environment::CreateEnvironment() {
         gameObject.SetTextureIndex(UNTEXTURED);
         gameObject.SetColor(glm::vec3((101 + Utils::randBetween(0, 50)) / 255.0, 67 / 255.0, 33 / 255.0));
         gameObject.SetScale(0.5, 0.5, 0.5);
-        mass = gameObject;
-    }
-
-    for (auto& mass : springs) {
-        gameObject = GameObject(_cubeModel);
-        gameObject.SetTextureIndex(UNTEXTURED);
-        gameObject.SetColor(glm::vec3(1, 0, 0));
-        gameObject.SetScale(0.25, 0.25, 0.25);
         mass = gameObject;
     }
 }

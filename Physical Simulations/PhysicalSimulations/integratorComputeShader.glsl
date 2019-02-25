@@ -16,9 +16,14 @@ layout(std140, binding = 5) buffer NewVel {
     vec4 NewVelocities[];
 };
 
+struct Connections {
+    uint left, right, up, down;
+};
+
 struct MassParams {
     bool isFixed;
     float mass;
+    Connections connections;
 };
 
 layout(std430, binding = 6) buffer MssPrps {
