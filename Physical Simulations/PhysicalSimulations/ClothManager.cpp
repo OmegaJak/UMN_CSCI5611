@@ -19,7 +19,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 0};
+    simParameters = simParams{0};
     InitGL();
 }
 
@@ -136,15 +136,12 @@ void ClothManager::ExecuteComputeShader() {
 
     glUseProgram(ShaderManager::ClothComputeShader);
 
-    auto computationsPerFrame = int(((1 / IDEAL_FRAMERATE) / COMPUTE_SHADER_TIMESTEP) + 0.5);
-    for (int i = 0; i < computationsPerFrame; i++) {
-        simParameters.computationStage = 0;
-        UpdateComputeParameters();
+    for (int i = 0; i < COMPUTES_PER_FRAME; i++) {
+        glUniform1i(ShaderManager::ClothComputeStage, 0);
         glDispatchCompute(NUM_MASSES / WORK_GROUP_SIZE, 1, 1);  // Run the cloth sim compute shader
         glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);         // Wait for all to finish
 
-        simParameters.computationStage = 1;
-        UpdateComputeParameters();
+        glUniform1i(ShaderManager::ClothComputeStage, 1);
         glDispatchCompute(NUM_MASSES / WORK_GROUP_SIZE, 1, 1);
         glMemoryBarrier(GL_SHADER_STORAGE_BUFFER);
     }

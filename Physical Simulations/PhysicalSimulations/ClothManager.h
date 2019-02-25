@@ -6,7 +6,6 @@ class Environment;
 
 struct simParams {
     GLfloat dt;
-    GLint computationStage;  // 0 = force calculation, 1 = force application
 };
 
 struct position {

@@ -334,7 +334,7 @@ int main(int argc, char* argv[]) {
         }
 
         stringstream debugText;
-        debugText << fixed << setprecision(3) << /*clothManager.NUM_SPRINGS << " springs, " <<*/ clothManager.NUM_MASSES << " masses "
+        debugText << fixed << setprecision(3) << COMPUTES_PER_FRAME << " steps per frame, " << clothManager.NUM_MASSES << " masses "
                   << " | " << lastAverageFrameTime << " per frame (" << lastFramerate << "FPS) average over " << framesPerSample
                   << " frames "
                   << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord;

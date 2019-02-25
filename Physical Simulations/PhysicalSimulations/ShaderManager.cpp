@@ -4,6 +4,7 @@
 #include "ShaderManager.h"
 
 GLuint ShaderManager::ClothComputeShader;
+GLuint ShaderManager::ClothComputeStage;
 RenderShader ShaderManager::EnvironmentShader;
 RenderShader ShaderManager::ClothShader;
 
@@ -13,6 +14,7 @@ void ShaderManager::InitShaders() {
     EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
     // ClothShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
     ClothComputeShader = CompileComputeShaderProgram("clothComputeShader.glsl");
+    ClothComputeStage = glGetUniformLocation(ClothComputeShader, "computationStage");
 
     InitEnvironmentShaderAttributes();
     // InitClothShaderAttributes();

@@ -32,6 +32,7 @@ class ShaderManager {
     static RenderShader EnvironmentShader;
     static RenderShader ClothShader;
     static GLuint ClothComputeShader;
+    static GLuint ClothComputeStage;
 
    private:
     static void InitEnvironmentShaderAttributes();
