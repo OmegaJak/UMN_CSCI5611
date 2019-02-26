@@ -216,7 +216,10 @@ void ClothManager::RenderParticles(float dt, Environment *environment) {
 
     auto model = glm::mat4();
     glUniformMatrix4fv(ShaderManager::ClothShader.Attributes.model, 1, GL_FALSE, glm::value_ptr(model));
-    glUniform1i(ShaderManager::ClothShader.Attributes.texID, UNTEXTURED);  // Set which texture to use
+
+    auto color = glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0);
+    glUniform3fv(ShaderManager::ClothShader.Attributes.color, 1, glm::value_ptr(color));  // Update the color, if necessary
+    glUniform1i(ShaderManager::ClothShader.Attributes.texID, UNTEXTURED);                 // Set which texture to use
 
     glDrawElements(GL_TRIANGLES, NUM_TRIANGLE_INDICES, GL_UNSIGNED_INT, (void *)0);
 

@@ -8,8 +8,6 @@ class Environment {
     void UpdateAll();
     void SetGravityCenterPosition(const glm::vec3& position);
 
-    GameObject masses[ClothManager::NUM_MASSES];
-
    private:
     void CreateEnvironment();
 
