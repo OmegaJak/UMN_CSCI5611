@@ -2,6 +2,7 @@
 
 #include <SDL_stdinc.h>
 #include <ctime>
+#include <gtc/type_ptr.hpp>
 #include "ClothManager.h"
 #include "Constants.h"
 #include "Environment.h"
@@ -13,6 +14,7 @@ const GLint bufMask = GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT;
 
 GLuint ClothManager::posSSbo;
 GLuint ClothManager::velSSbo;
+GLuint ClothManager::normSSbo;
 GLuint ClothManager::newVelSSbo;
 GLuint ClothManager::massSSbo;
 GLuint ClothManager::paramSSbo;
@@ -36,8 +38,12 @@ void ClothManager::InitGL() {
     for (int i = 0; i < NUM_MASSES; i++) {
         int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
         // positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 3, 20, 0};
-        float y = threadnum * 1 + Utils::randBetween(0, 1);
-        float x = (i % MASSES_PER_THREAD) * 2 + Utils::randBetween(0, 1);
+        float y = threadnum * 1;
+        float x = (i % MASSES_PER_THREAD) * 2;
+        if (i % MASSES_PER_THREAD != 0) {
+            y += Utils::randBetween(0, 1);
+            x += Utils::randBetween(0, 1);
+        }
         positions[i] = {x, y, 20.0f, 1.0f};
     }
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
@@ -59,7 +65,7 @@ void ClothManager::InitGL() {
         massParameters[i].mass = 0.05;
 
         // Initialize connections
-        unsigned int left = 95683, right = 95683, up = 95683, down = 95683;
+        unsigned int left = BAD_INDEX, right = BAD_INDEX, up = BAD_INDEX, down = BAD_INDEX;
         int threadnum = i / MASSES_PER_THREAD;
         int y = i % MASSES_PER_THREAD;
         if (threadnum < NUM_THREADS - 1) {
@@ -92,6 +98,17 @@ void ClothManager::InitGL() {
     printf("Initializing mass velocities\n");
     velocity *vels = (velocity *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(velocity), bufMask);
     memset(vels, 0, NUM_MASSES * sizeof(velocity));
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    ////
+
+    // Prepare the normals buffer
+    glGenBuffers(1, &normSSbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, normSSbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_MASSES * sizeof(normal), nullptr, GL_STATIC_DRAW);
+
+    printf("Initializing cloth normals\n");
+    normal *normals = (normal *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(normal), bufMask);
+    memset(normals, 0, NUM_MASSES * sizeof(normal));
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
 
@@ -130,6 +147,7 @@ void ClothManager::ExecuteComputeShader() {
 
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, posSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, velSSbo);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, normSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newVelSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, massSSbo);
@@ -152,12 +170,55 @@ void ClothManager::ExecuteComputeShader() {
     }
 }
 
-void ClothManager::RenderParticles(float dt, Environment *environment) {
-    glBindBuffer(GL_SHADER_STORAGE_BUFFER, posSSbo);
-    position *positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), GL_MAP_READ_BIT);
-    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+void ClothManager::InitClothIBO() {
+    assert(NUM_TRIANGLE_INDICES % 3 == 0);
+    assert(TRIANGLES_PER_THREAD % 2 == 0);
 
-    for (int i = 0; i < NUM_MASSES; i++) {
-        environment->masses[i].SetPosition(glm::vec3(positions[i].x, positions[i].y, positions[i].z));
+    glGenBuffers(1, &ShaderManager::ClothShader.IBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ShaderManager::ClothShader.IBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, NUM_TRIANGLE_INDICES * sizeof(GLuint), nullptr, GL_STATIC_DRAW);
+    auto indices = (GLuint *)glMapBufferRange(GL_ELEMENT_ARRAY_BUFFER, 0, NUM_TRIANGLE_INDICES * sizeof(GLuint), bufMask);
+
+    glm::uvec3 evenBaseTriangleIndices = {0, 1, MASSES_PER_THREAD};
+    glm::uvec3 oddBaseTriangleIndices = {1, MASSES_PER_THREAD + 1, MASSES_PER_THREAD};
+    for (int i = 0; i < NUM_TRIANGLES; i++) {
+        int y = (i / 2) % (TRIANGLES_PER_THREAD / 2);
+        int threadnum = i / TRIANGLES_PER_THREAD;
+        glm::uvec3 baseIndices;
+        if (i % 2 == 0) {
+            baseIndices = evenBaseTriangleIndices;
+        } else {
+            baseIndices = oddBaseTriangleIndices;
+        }
+
+        baseIndices += glm::uvec3(MASSES_PER_THREAD * threadnum);
+        glm::uvec3 triangleIndices = baseIndices + glm::uvec3(y);
+
+        int indexBaseIndex = i * 3;
+        assert(indexBaseIndex < NUM_TRIANGLE_INDICES);
+
+        indices[indexBaseIndex] = triangleIndices[0];
+        indices[indexBaseIndex + 1] = triangleIndices[1];
+        indices[indexBaseIndex + 2] = triangleIndices[2];
     }
+
+    /*for (int i = 0; i < NUM_TRIANGLE_INDICES; i++) {
+        printf("%u, ", indices[i]);
+
+        if (i % 3 == 2) printf("\n");
+    }*/
+
+    glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+}
+
+void ClothManager::RenderParticles(float dt, Environment *environment) {
+    glBindVertexArray(ShaderManager::ClothShader.VAO);
+
+    auto model = glm::mat4();
+    glUniformMatrix4fv(ShaderManager::ClothShader.Attributes.model, 1, GL_FALSE, glm::value_ptr(model));
+    glUniform1i(ShaderManager::ClothShader.Attributes.texID, UNTEXTURED);  // Set which texture to use
+
+    glDrawElements(GL_TRIANGLES, NUM_TRIANGLE_INDICES, GL_UNSIGNED_INT, (void *)0);
+
+    glBindVertexArray(ShaderManager::EnvironmentShader.VAO);
 }

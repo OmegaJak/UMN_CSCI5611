@@ -20,6 +20,7 @@ typedef struct {
     GLuint Program;
     ShaderAttributes Attributes;
     GLuint VAO;
+    GLuint IBO;
 } RenderShader;
 
 class ShaderManager {
@@ -37,6 +38,7 @@ class ShaderManager {
    private:
     static void InitEnvironmentShaderAttributes();
     static void InitClothShaderAttributes();
+    static void InitShaderUniforms(RenderShader& shaderProgram);
     static GLuint CompileRenderShader(const std::string& vertex_shader_file, const std::string& fragment_shader_file);
     static GLuint CompileComputeShaderProgram(const std::string& compute_shader_file);
     static char* ReadShaderSource(const char* shaderFile);

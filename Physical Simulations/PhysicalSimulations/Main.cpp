@@ -340,15 +340,17 @@ int main(int argc, char* argv[]) {
                   << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord;
         SDL_SetWindowTitle(window, debugText.str().c_str());
 
+        // Render the environment
+        ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
+        glBindBuffer(GL_ARRAY_BUFFER, ModelManager::vbo_);
+        TextureManager::Update(ShaderManager::EnvironmentShader.Program);
+        environment.UpdateAll();
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
         // Render particles!!
         // ShaderManager::ActivateShader(ShaderManager::ClothShader);
         // TextureManager::Update(ShaderManager::ClothShader.Program);
         clothManager.RenderParticles(deltaTime, &environment);
-
-        // Render the environment
-        ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
-        TextureManager::Update(ShaderManager::EnvironmentShader.Program);
-        environment.UpdateAll();
 
         SDL_GL_SwapWindow(window);  // Double buffering
     }

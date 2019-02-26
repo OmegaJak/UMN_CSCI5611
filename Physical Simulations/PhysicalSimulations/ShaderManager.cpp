@@ -11,13 +11,12 @@ RenderShader ShaderManager::ClothShader;
 std::map<int, std::function<void(ShaderAttributes)>> ShaderManager::ShaderFunctions;
 
 void ShaderManager::InitShaders() {
-    EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
-    // ClothShader.Program = CompileRenderShader("particle-Vertex.glsl", "particle-Fragment.glsl");
+    ClothShader.Program = EnvironmentShader.Program = CompileRenderShader("environment-Vertex.glsl", "environment-Fragment.glsl");
     ClothComputeShader = CompileComputeShaderProgram("clothComputeShader.glsl");
     ClothComputeStage = glGetUniformLocation(ClothComputeShader, "computationStage");
 
     InitEnvironmentShaderAttributes();
-    // InitClothShaderAttributes();
+    InitClothShaderAttributes();
 }
 
 void ShaderManager::Cleanup() {
@@ -63,51 +62,67 @@ void ShaderManager::InitEnvironmentShaderAttributes() {
     glVertexAttribPointer(texAttrib, VALUES_PER_TEXCOORD, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
                           (void*)(TEXCOORD_OFFSET * sizeof(float)));
 
-    // GLint colAttrib = glGetAttribLocation(EnvironmentShader.Program, "inColor");
-    GLint uniColor = glGetUniformLocation(EnvironmentShader.Program, "inColor");
-    GLint uniTexID = glGetUniformLocation(EnvironmentShader.Program, "texID");
-    GLint uniView = glGetUniformLocation(EnvironmentShader.Program, "view");
-    GLint uniProj = glGetUniformLocation(EnvironmentShader.Program, "proj");
-    GLint uniModel = glGetUniformLocation(EnvironmentShader.Program, "model");
-    GLint uniSpecFactor = glGetUniformLocation(EnvironmentShader.Program, "specFactor");
-
     EnvironmentShader.Attributes.position = posAttrib;
     EnvironmentShader.Attributes.normals = normAttrib;
     EnvironmentShader.Attributes.texCoord = texAttrib;
-    EnvironmentShader.Attributes.color = uniColor;
-    EnvironmentShader.Attributes.texID = uniTexID;
-    EnvironmentShader.Attributes.view = uniView;
-    EnvironmentShader.Attributes.projection = uniProj;
-    EnvironmentShader.Attributes.model = uniModel;
-    EnvironmentShader.Attributes.specFactor = uniSpecFactor;
+
+    InitShaderUniforms(EnvironmentShader);
+
+    EnvironmentShader.IBO = 0;
+
+    glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+}
+
+void ShaderManager::InitClothShaderAttributes() {
+    // First build a Vertex Array Object (VAO) to store mapping of shader attributes to VBO
+    glGenVertexArrays(1, &ClothShader.VAO);  // Create a VAO
+    glBindVertexArray(ClothShader.VAO);      // Bind the above created VAO to the current context
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ClothManager::posSSbo);
+    glBindBuffer(GL_ARRAY_BUFFER, ClothManager::posSSbo);
+    GLint posAttrib = glGetAttribLocation(ClothShader.Program, "position");
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(position), (void*)0);
+    // Attribute, vals/attrib., type, isNormalized, stride, offset
+    glEnableVertexAttribArray(posAttrib);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, ClothManager::normSSbo);
+    glBindBuffer(GL_ARRAY_BUFFER, ClothManager::normSSbo);
+    GLint normAttrib = glGetAttribLocation(ClothShader.Program, "inNormal");
+    glVertexAttribPointer(normAttrib, 3, GL_FLOAT, GL_FALSE, sizeof(normal), (void*)0);
+    glEnableVertexAttribArray(normAttrib);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    /*GLint texAttrib = glGetAttribLocation(ClothShader.Program, "inTexcoord");
+    glEnableVertexAttribArray(texAttrib);
+    glVertexAttribPointer(texAttrib, VALUES_PER_TEXCOORD, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
+                          (void*)(TEXCOORD_OFFSET * sizeof(float)));*/
+
+    ClothShader.Attributes.position = posAttrib;
+    ClothShader.Attributes.normals = normAttrib;
+    // ClothShader.Attributes.texCoord = texAttrib;
+
+    InitShaderUniforms(ClothShader);
+    ClothManager::InitClothIBO();
 
     glBindVertexArray(0);  // Unbind the VAO in case we want to create a new one
 }
 
-void ShaderManager::InitClothShaderAttributes() {
-    glGenVertexArrays(1, &ClothShader.VAO);
-    glBindVertexArray(ClothShader.VAO);
+void ShaderManager::InitShaderUniforms(RenderShader& shaderProgram) {
+    GLint uniColor = glGetUniformLocation(shaderProgram.Program, "inColor");
+    GLint uniTexID = glGetUniformLocation(shaderProgram.Program, "texID");
+    GLint uniView = glGetUniformLocation(shaderProgram.Program, "view");
+    GLint uniProj = glGetUniformLocation(shaderProgram.Program, "proj");
+    GLint uniModel = glGetUniformLocation(shaderProgram.Program, "model");
+    GLint uniSpecFactor = glGetUniformLocation(shaderProgram.Program, "specFactor");
 
-    GLint posAttrib = glGetAttribLocation(ClothShader.Program, "position");
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(posAttrib);
-
-    GLint uniView = glGetUniformLocation(ClothShader.Program, "view");
-    GLint uniProj = glGetUniformLocation(ClothShader.Program, "proj");
-    GLint uniScreenSize = glGetUniformLocation(ClothShader.Program, "screenSize");
-    GLint uniSpriteSize = glGetUniformLocation(ClothShader.Program, "spriteSize");
-    GLint uniParticleMode = glGetUniformLocation(ClothShader.Program, "particleMode");
-
-    ClothShader.Attributes.position = posAttrib;
-    ClothShader.Attributes.view = uniView;
-    ClothShader.Attributes.projection = uniProj;
-
-    // Make it obvious that these values aren't used
-    ClothShader.Attributes.normals = ClothShader.Attributes.texCoord = ClothShader.Attributes.texID = ClothShader.Attributes.model =
-        ClothShader.Attributes.specFactor = -1;
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    shaderProgram.Attributes.color = uniColor;
+    shaderProgram.Attributes.texID = uniTexID;
+    shaderProgram.Attributes.view = uniView;
+    shaderProgram.Attributes.projection = uniProj;
+    shaderProgram.Attributes.model = uniModel;
+    shaderProgram.Attributes.specFactor = uniSpecFactor;
 }
 
 GLuint ShaderManager::CompileRenderShader(const std::string& vertex_shader_file, const std::string& fragment_shader_file) {

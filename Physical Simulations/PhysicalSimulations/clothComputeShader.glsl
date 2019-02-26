@@ -12,6 +12,10 @@ layout(std140, binding = 2) buffer Vel {
     vec4 Velocities[];
 };
 
+layout(std140, binding = 3) buffer Norms {
+    vec4 Normals[];
+};
+
 layout(std140, binding = 5) buffer NewVel {
     vec4 NewVelocities[];
 };
@@ -44,6 +48,13 @@ const float kd = 20;
 const float restLength = 1;
 const vec3 gravity = vec3(0, 0, -9.8);
 
+// I'm rather sad that I need this.
+// Because I need to be able to use both gid and the connection index as inputs, getAccelerationFromSpringConnection takes uints
+// glsl can't convert uint to int
+// I would prefer to use -1 as a bad index, as you can't index into an array with -1. But because I have to use uint's I've just gotta pick a large number
+// I tried making a Connection data structure, but things broke when I did so. Maybe GLSL doesn't like structs in structs in structs. Data packing gets weird sometimes.
+const uint BAD_INDEX = 8000001;
+
 bool isNan(vec3 v) {
     return isnan(v.x) || isnan(v.y) || isnan(v.z);
 }
@@ -53,7 +64,7 @@ bool isInf(vec3 v) {
 }
 
 vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
-    if (massOne == 95683 || massTwo == 95683) return vec3(0, 0, 0);
+    if (massOne == BAD_INDEX || massTwo == BAD_INDEX) return vec3(0, 0, 0);
 
     vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
     float length = length(toMassOneFromTwo);
@@ -98,6 +109,37 @@ void ApplyForces() {
     }
 }
 
+void ComputeNormals() {
+    Connections connections = MassParameters[gid].connections;
+    uint leftIndex = BAD_INDEX, upIndex = BAD_INDEX;
+
+    // This makes me sad
+    if (connections.left != BAD_INDEX && connections.up != BAD_INDEX) {
+        leftIndex = connections.left;
+        upIndex = connections.up;
+    } else if (connections.up != BAD_INDEX && connections.right != BAD_INDEX) {
+        leftIndex = connections.up;
+        upIndex = connections.right;
+    } else if (connections.right != BAD_INDEX && connections.down != BAD_INDEX) {
+        leftIndex = connections.right;
+        upIndex = connections.down;
+    } else if (connections.down != BAD_INDEX && connections.left != BAD_INDEX) {
+        leftIndex = connections.down;
+        upIndex = connections.left;
+    }
+
+    if (leftIndex == BAD_INDEX || upIndex == BAD_INDEX) {
+        Normals[gid].xyz = vec3(0, 0, 0);
+        return;
+    }
+
+    vec3 toLeft = normalize(Positions[leftIndex].xyz - Positions[gid].xyz);
+    vec3 toUp = normalize(Positions[upIndex].xyz - Positions[gid].xyz);
+
+    vec3 normal = cross(toLeft, toUp);
+    Normals[gid].xyz = normal;
+}
+
 void main() {
     gid = gl_GlobalInvocationID.x;
 
@@ -105,5 +147,6 @@ void main() {
         CalculateForces();
     } else if (computationStage == 1) {
         ApplyForces();
+        ComputeNormals();
     }
 }
