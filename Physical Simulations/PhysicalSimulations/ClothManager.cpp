@@ -21,7 +21,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0};
+    simParameters = simParams{0, 100, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 
@@ -38,8 +38,8 @@ void ClothManager::InitGL() {
     for (int i = 0; i < NUM_MASSES; i++) {
         int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
         // positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 3, 20, 0};
-        float y = threadnum * 1;
-        float x = (i % MASSES_PER_THREAD) * 2;
+        float y = threadnum * 0.5 * (CLOTH_WIDTH / float(NUM_THREADS));
+        float x = (i % MASSES_PER_THREAD) * simParameters.restLength;
         if (i % MASSES_PER_THREAD != 0) {
             y += Utils::randBetween(0, 1);
             x += Utils::randBetween(0, 1);
@@ -57,12 +57,8 @@ void ClothManager::InitGL() {
     printf("Initializing springs...\n");
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
-        if (i % MASSES_PER_THREAD == 0) {
-            massParameters[i].isFixed = true;
-        } else {
-            massParameters[i].isFixed = false;
-        }
-        massParameters[i].mass = 0.05;
+        massParameters[i].isFixed = i % MASSES_PER_THREAD == 0;
+        massParameters[i].mass = float(CLOTH_WEIGHT) / float(NUM_MASSES);
 
         // Initialize connections
         unsigned int left = BAD_INDEX, right = BAD_INDEX, up = BAD_INDEX, down = BAD_INDEX;
