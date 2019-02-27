@@ -5,6 +5,8 @@
 class Environment;
 
 struct simParams {
+    GLfloat obstacleCenterX, obstacleCenterY, obstacleCenterZ;
+    GLfloat obstacleRadius;
     GLfloat dt;
     GLfloat ks;
     GLfloat kd;

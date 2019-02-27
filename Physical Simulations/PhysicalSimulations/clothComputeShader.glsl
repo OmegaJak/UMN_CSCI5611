@@ -35,6 +35,8 @@ layout(std430, binding = 6) buffer MssPrps {
 };
 
 layout(std430, binding = 4) buffer Parameters {
+    vec3 obstacleCenter;
+    float obstacleRadius;
     float dt;
     float ks;
     float kd;
@@ -150,6 +152,14 @@ void IntegrateForces() {
     }
 }
 
+void ExecuteCollisions() {
+    if (distance(Positions[gid].xyz, obstacleCenter) < obstacleRadius) {
+        vec3 normal = normalize(Positions[gid].xyz - obstacleCenter);
+        Positions[gid].xyz = obstacleCenter + normal * obstacleRadius * 1.05;
+        Velocities[gid].xyz = normal * (dot(Velocities[gid].xyz * -0.9, normal));
+    }
+}
+
 void ComputeNormals() {
     Connections connections = MassParameters[gid].connections;
     uint leftIndex = BAD_INDEX, upIndex = BAD_INDEX;
@@ -188,6 +198,7 @@ void main() {
         CalculateForces();
     } else if (computationStage == 1) {
         IntegrateForces();
+        ExecuteCollisions();
         ComputeNormals();
     }
 }

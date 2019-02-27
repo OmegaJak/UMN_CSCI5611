@@ -21,7 +21,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 150, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
+    simParameters = simParams{0, 0, 0, 2, 0, 150, 30, 0.6 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 
@@ -41,8 +41,8 @@ void ClothManager::InitGL() {
         float y = threadnum * 0.5 * (CLOTH_WIDTH / float(NUM_THREADS));
         float x = (i % MASSES_PER_THREAD) * simParameters.restLength;
         if (i % MASSES_PER_THREAD != 0) {
-            y += Utils::randBetween(0, 1);
-            x += Utils::randBetween(0, 1);
+            y += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength;
+            x += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength;
         }
         positions[i] = {x, y, 20.0f, 1.0f};
     }

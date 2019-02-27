@@ -40,6 +40,7 @@ void Environment::CreateEnvironment() {
     gameObject.SetTextureIndex(UNTEXTURED);
     gameObject.SetColor(glm::vec3(0, 0, 0));
     gameObject.SetPosition(glm::vec3(10, 10, 0));
+    gameObject.SetScale(4, 4, 4);
     _gameObjects.push_back(gameObject);
     _gravityCenterIndex = _gameObjects.size() - 1;
 }

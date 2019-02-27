@@ -331,6 +331,9 @@ int main(int argc, char* argv[]) {
         if (SDL_GetMouseState(NULL, NULL) & SDL_BUTTON(SDL_BUTTON_LEFT) & ~SDL_BUTTON(SDL_BUTTON_RIGHT)) {
             lastMouseWorldCoord = camera.GetMousePosition(normalizedMouseX, normalizedMouseY, proj, gravityCenterDistance);
             environment.SetGravityCenterPosition(lastMouseWorldCoord);
+            clothManager.simParameters.obstacleCenterX = lastMouseWorldCoord.x;
+            clothManager.simParameters.obstacleCenterY = lastMouseWorldCoord.y;
+            clothManager.simParameters.obstacleCenterZ = lastMouseWorldCoord.z;
         }
 
         stringstream debugText;
