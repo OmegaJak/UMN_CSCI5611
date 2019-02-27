@@ -21,7 +21,7 @@ GLuint ClothManager::paramSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 100, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
+    simParameters = simParams{0, 150, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 

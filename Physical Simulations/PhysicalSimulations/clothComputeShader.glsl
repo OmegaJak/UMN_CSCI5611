@@ -63,10 +63,8 @@ bool isInf(vec3 v) {
     return isinf(v.x) || isinf(v.y) || isinf(v.z);
 }
 
-vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
-    if (massOne == BAD_INDEX || massTwo == BAD_INDEX) return vec3(0, 0, 0);
-
-    vec3 toMassOneFromTwo = Positions[massOne].xyz - Positions[massTwo].xyz;
+vec3 getSpringAcceleration(vec3 p1, vec3 v1, float m1, vec3 p2, vec3 v2) {
+    vec3 toMassOneFromTwo = p1 - p2;
     float length = length(toMassOneFromTwo);
     if (length == 0) {
         toMassOneFromTwo = vec3(0, 0, 1);
@@ -74,18 +72,34 @@ vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
         toMassOneFromTwo = toMassOneFromTwo / length;
     }
 
-    float v1 = dot(toMassOneFromTwo, Velocities[massOne].xyz);
-    float v2 = dot(toMassOneFromTwo, Velocities[massTwo].xyz);
+    float dampV1 = dot(toMassOneFromTwo, v1);
+    float dampV2 = dot(toMassOneFromTwo, v2);
 
     float springForce = -ks * (length - restLength);
-    float dampForce = -kd * (v1 - v2);
+    float dampForce = -kd * (dampV1 - dampV2);
     float force = springForce + dampForce;
 
-    vec3 massOneAcc = 0.5 * force * toMassOneFromTwo / MassParameters[massOne].mass;
+    vec3 massOneAcc = 0.5 * force * toMassOneFromTwo / m1;
 
     if (isInf(massOneAcc) || isNan(massOneAcc)) massOneAcc = vec3(0, 0, 0);
 
     return massOneAcc;
+}
+
+vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
+    if (massOne == BAD_INDEX || massTwo == BAD_INDEX) return vec3(0, 0, 0);
+    vec3 originalPosition = Positions[massOne].xyz;
+    vec3 originalVelocity = Velocities[massOne].xyz;
+    float mass = MassParameters[massOne].mass;
+    vec3 p2 = Positions[massTwo].xyz;
+    vec3 v2 = Velocities[massTwo].xyz;
+
+    vec3 a = getSpringAcceleration(originalPosition, originalVelocity, mass, p2, v2);
+    vec3 v_half = originalVelocity + a * 0.5 * dt;
+    vec3 p_half = originalPosition + v_half * 0.5 * dt;
+
+    vec3 a_half = getSpringAcceleration(p_half, v_half, mass, p2, v2);
+    return a_half;
 }
 
 void CalculateForces() {
@@ -99,7 +113,7 @@ void CalculateForces() {
     NewVelocities[gid].xyz += acc * dt;
 }
 
-void ApplyForces() {
+void IntegrateForces() {
     Velocities[gid].xyz = NewVelocities[gid].xyz;
 
     if (!MassParameters[gid].isFixed) {
@@ -146,7 +160,7 @@ void main() {
     if (computationStage == 0) {
         CalculateForces();
     } else if (computationStage == 1) {
-        ApplyForces();
+        IntegrateForces();
         ComputeNormals();
     }
 }
