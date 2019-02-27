@@ -65,6 +65,7 @@ class ClothManager {
     static GLuint newVelSSbo;
     static GLuint massSSbo;
     static GLuint paramSSbo;
+    static GLuint lastPosSSbo;
 
     simParams simParameters;
 };

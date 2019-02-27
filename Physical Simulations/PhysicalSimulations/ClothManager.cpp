@@ -18,10 +18,11 @@ GLuint ClothManager::normSSbo;
 GLuint ClothManager::newVelSSbo;
 GLuint ClothManager::massSSbo;
 GLuint ClothManager::paramSSbo;
+GLuint ClothManager::lastPosSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 0, 0, 2, 0, 150, 30, 0.6 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
+    simParameters = simParams{0, 0, 0, 4, 0, 150, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 
@@ -58,6 +59,7 @@ void ClothManager::InitGL() {
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
         massParameters[i].isFixed = i % MASSES_PER_THREAD == 0;
+        massParameters[i].isFixed = false;
         massParameters[i].mass = float(CLOTH_WEIGHT) / float(NUM_MASSES);
 
         // Initialize connections
@@ -118,6 +120,16 @@ void ClothManager::InitGL() {
     glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
     ////
 
+    // Prepare the last positions buffer
+    glGenBuffers(1, &lastPosSSbo);
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, lastPosSSbo);
+    glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_MASSES * sizeof(position), nullptr, GL_STATIC_DRAW);
+
+    positions = (position *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(position), bufMask);
+    memset(positions, 0, NUM_MASSES * sizeof(position));
+    glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
+    ////
+
     // Misc data //
     glGenBuffers(1, &paramSSbo);
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, paramSSbo);
@@ -147,6 +159,7 @@ void ClothManager::ExecuteComputeShader() {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 4, paramSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 5, newVelSSbo);
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 6, massSSbo);
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 7, lastPosSSbo);
 
     glUseProgram(ShaderManager::ClothComputeShader);
 
@@ -160,7 +173,7 @@ void ClothManager::ExecuteComputeShader() {
         glMemoryBarrier(GL_SHADER_STORAGE_BUFFER);
     }
 
-    int numSSbos = 6;
+    int numSSbos = 7;
     for (int i = 0; i < numSSbos; i++) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i + 1, 0);
     }

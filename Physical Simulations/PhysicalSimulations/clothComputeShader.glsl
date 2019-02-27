@@ -16,8 +16,12 @@ layout(std140, binding = 3) buffer Norms {
     vec4 Normals[];
 };
 
-layout(std140, binding = 5) buffer NewVel {
-    vec4 NewVelocities[];
+layout(std140, binding = 5) buffer Accel {
+    vec4 Accelerations[];
+};
+
+layout(std140, binding = 7) buffer LastPos {
+    vec4 LastPositions[];
 };
 
 struct Connections {
@@ -124,11 +128,11 @@ vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
     vec3 v2 = Velocities[massTwo].xyz;
 
     vec3 a = getSpringAcceleration(originalPosition, originalVelocity, mass, p2, v2);
-    vec3 v_half = originalVelocity + a * 0.5 * dt;
+    /*vec3 v_half = originalVelocity + a * 0.5 * dt;
     vec3 p_half = originalPosition + v_half * 0.5 * dt;
 
-    vec3 a_half = getSpringAcceleration(p_half, v_half, mass, p2, v2);
-    return a_half;
+    vec3 a_half = getSpringAcceleration(p_half, v_half, mass, p2, v2);*/
+    return a;
 }
 
 void CalculateForces() {
@@ -139,24 +143,35 @@ void CalculateForces() {
 
     vec3 acc = gravity + leftAcc + rightAcc + upAcc + downAcc;
 
-    NewVelocities[gid].xyz += acc * dt;
+    Accelerations[gid].xyz = acc;
+    //NewVelocities[gid].xyz += acc * dt;
 }
 
 void IntegrateForces() {
-    Velocities[gid].xyz = NewVelocities[gid].xyz;
+    //Velocities[gid].xyz = Positions[gid].xyz - LastPositions[gid].xyz;
 
     if (!MassParameters[gid].isFixed) {
-        Positions[gid].xyz += Velocities[gid].xyz * dt;
+        /*vec3 newPos = 2 * Positions[gid].xyz - LastPositions[gid].xyz + Accelerations[gid].xyz * dt * dt;
+        LastPositions[gid].xyz = Positions[gid].xyz;
+        Positions[gid].xyz = newPos;*/
+        Velocities[gid].xyz += Accelerations[gid].xyz * dt;
+        Positions[gid].xyz += Velocities[gid].xyz * dt + Accelerations[gid].xyz * dt * dt;
     } else {
         Velocities[gid].xyz = vec3(0, 0, 0);
     }
 }
 
 void ExecuteCollisions() {
-    if (distance(Positions[gid].xyz, obstacleCenter) < obstacleRadius) {
+    float extraRadiusFactor = 1.01;
+    if (distance(Positions[gid].xyz, obstacleCenter) < obstacleRadius * extraRadiusFactor) {
         vec3 normal = normalize(Positions[gid].xyz - obstacleCenter);
-        Positions[gid].xyz = obstacleCenter + normal * obstacleRadius * 1.05;
-        Velocities[gid].xyz = normal * (dot(Velocities[gid].xyz * -0.9, normal));
+        Positions[gid].xyz = obstacleCenter + normal * obstacleRadius * extraRadiusFactor;
+
+        vec3 velTowardCenter = dot(-1 * normal, Velocities[gid].xyz) * (-1 * normal);
+        Velocities[gid].xyz -= velTowardCenter;
+        Velocities[gid].xyz *= 0.999;
+        //Velocities[gid].xyz = normal * (dot(Velocities[gid].xyz * -0.9, normal));
+        //Velocities[gid].xyz = vec3(0, 0, 0);
     }
 }
 
