@@ -143,6 +143,10 @@ void CalculateForces() {
 
     vec3 acc = gravity + leftAcc + rightAcc + upAcc + downAcc;
 
+    float amt = dot(Normals[gid].xyz, Velocities[gid].xyz);
+    vec3 opposeVelocityAlongNormal = -1 * amt * Normals[gid].xyz;
+    acc += opposeVelocityAlongNormal;
+
     Accelerations[gid].xyz = acc;
     //NewVelocities[gid].xyz += acc * dt;
 }
@@ -202,7 +206,7 @@ void ComputeNormals() {
     vec3 toLeft = normalize(Positions[leftIndex].xyz - Positions[gid].xyz);
     vec3 toUp = normalize(Positions[upIndex].xyz - Positions[gid].xyz);
 
-    vec3 normal = cross(toLeft, toUp);
+    vec3 normal = normalize(cross(toLeft, toUp));
     Normals[gid].xyz = normal;
 }
 

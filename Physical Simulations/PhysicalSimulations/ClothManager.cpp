@@ -22,7 +22,7 @@ GLuint ClothManager::lastPosSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 0, 0, 4, 0, 150, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
+    simParameters = simParams{0, 0, 0, 4, 0, 150, 30, 0.45 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 
@@ -59,7 +59,7 @@ void ClothManager::InitGL() {
     massParams *massParameters = (massParams *)glMapBufferRange(GL_SHADER_STORAGE_BUFFER, 0, NUM_MASSES * sizeof(massParams), bufMask);
     for (int i = 0; i < NUM_MASSES; i++) {
         massParameters[i].isFixed = i % MASSES_PER_THREAD == 0;
-        massParameters[i].isFixed = false;
+        // massParameters[i].isFixed = false;
         massParameters[i].mass = float(CLOTH_WEIGHT) / float(NUM_MASSES);
 
         // Initialize connections
