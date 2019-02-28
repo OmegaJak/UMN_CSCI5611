@@ -211,8 +211,6 @@ int main(int argc, char* argv[]) {
 
     ClothManager clothManager = ClothManager();
 
-    ModelManager::InitVBO();
-
     ShaderManager::InitShaders();
 
     TextureManager::InitTextures();
@@ -347,7 +345,7 @@ int main(int argc, char* argv[]) {
 
         // Render the environment
         ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
-        glBindBuffer(GL_ARRAY_BUFFER, ModelManager::vbo_);
+        glBindBuffer(GL_ARRAY_BUFFER, ShaderManager::EnvironmentShader.VBO);
         TextureManager::Update(ShaderManager::EnvironmentShader.Program);
         environment.UpdateAll();
         glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -12,8 +12,6 @@ class ModelManager {
 
     static int NumElements();
 
-    static GLuint vbo_;
-
    private:
     static std::vector<Model*> models_;
     static int num_verts_;

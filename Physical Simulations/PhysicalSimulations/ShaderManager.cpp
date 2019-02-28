@@ -1,6 +1,7 @@
 #include <fstream>
 #include "ClothManager.h"
 #include "Constants.h"
+#include "ModelManager.h"
 #include "ShaderManager.h"
 
 GLuint ShaderManager::ClothComputeShader;
@@ -43,6 +44,8 @@ void ShaderManager::ApplyToEachRenderShader(std::function<void(ShaderAttributes)
 
 // Tell OpenGL how to set fragment shader input
 void ShaderManager::InitEnvironmentShaderAttributes() {
+    ModelManager::InitVBO();
+
     // First build a Vertex Array Object (VAO) to store mapping of shader attributes to VBO
     glGenVertexArrays(1, &EnvironmentShader.VAO);  // Create a VAO
     glBindVertexArray(EnvironmentShader.VAO);      // Bind the above created VAO to the current context
@@ -94,10 +97,7 @@ void ShaderManager::InitClothShaderAttributes() {
     glEnableVertexAttribArray(normAttrib);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-    /*GLint texAttrib = glGetAttribLocation(ClothShader.Program, "inTexcoord");
-    glEnableVertexAttribArray(texAttrib);
-    glVertexAttribPointer(texAttrib, VALUES_PER_TEXCOORD, GL_FLOAT, GL_FALSE, ATTRIBUTE_STRIDE * sizeof(float),
-                          (void*)(TEXCOORD_OFFSET * sizeof(float)));*/
+    ClothManager::InitClothTexcoords();
 
     ClothShader.Attributes.position = posAttrib;
     ClothShader.Attributes.normals = normAttrib;

@@ -22,7 +22,7 @@ GLuint ClothManager::lastPosSSbo;
 
 ClothManager::ClothManager() {
     srand(time(NULL));
-    simParameters = simParams{0, 0, 0, 4, 0, 150, 30, 0.45 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
+    simParameters = simParams{0, 0, 0, 4, 0, 150, 30, 0.4 * CLOTH_HEIGHT / float(MASSES_PER_THREAD)};
     InitGL();
 }
 
@@ -39,7 +39,7 @@ void ClothManager::InitGL() {
     for (int i = 0; i < NUM_MASSES; i++) {
         int threadnum = i / MASSES_PER_THREAD;  // Deliberate int div for floor
         // positions[i] = {Utils::randBetween(0, 1), Utils::randBetween(0, 1) + threadnum * 3, 20, 0};
-        float y = threadnum * 0.5 * (CLOTH_WIDTH / float(NUM_THREADS));
+        float y = threadnum * 0.3 * (CLOTH_WIDTH / float(NUM_THREADS));
         float x = (i % MASSES_PER_THREAD) * simParameters.restLength;
         if (i % MASSES_PER_THREAD != 0) {
             y += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength * 0.5;
@@ -179,6 +179,30 @@ void ClothManager::ExecuteComputeShader() {
     }
 }
 
+void ClothManager::InitClothTexcoords() {
+    glGenBuffers(1, &ShaderManager::ClothShader.VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, ShaderManager::ClothShader.VBO);
+    glBufferData(GL_ARRAY_BUFFER, NUM_MASSES * sizeof(texcoord), nullptr, GL_STATIC_DRAW);
+    auto texcoords = (texcoord *)glMapBufferRange(GL_ARRAY_BUFFER, 0, NUM_MASSES * sizeof(texcoord), bufMask);
+
+    for (int i = 0; i < NUM_MASSES; i++) {
+        int threadnum = i / MASSES_PER_THREAD;
+        int y = i % MASSES_PER_THREAD;
+
+        float u = threadnum / float(NUM_THREADS);
+        float v = y / float(MASSES_PER_THREAD);
+
+        texcoords[i].u = u;
+        texcoords[i].v = v;
+    }
+
+    GLint texAttrib = glGetAttribLocation(ShaderManager::ClothShader.Program, "inTexcoord");
+    glEnableVertexAttribArray(texAttrib);
+    glVertexAttribPointer(texAttrib, 2, GL_FLOAT, GL_FALSE, sizeof(texcoord), (void *)0);
+
+    glUnmapBuffer(GL_ARRAY_BUFFER);
+}
+
 void ClothManager::InitClothIBO() {
     assert(NUM_TRIANGLE_INDICES % 3 == 0);
     assert(TRIANGLES_PER_THREAD % 2 == 0);
@@ -222,13 +246,14 @@ void ClothManager::InitClothIBO() {
 
 void ClothManager::RenderParticles(float dt, Environment *environment) {
     glBindVertexArray(ShaderManager::ClothShader.VAO);
+    glBindBuffer(GL_ARRAY_BUFFER, ShaderManager::ClothShader.VBO);
 
     auto model = glm::mat4();
     glUniformMatrix4fv(ShaderManager::ClothShader.Attributes.model, 1, GL_FALSE, glm::value_ptr(model));
 
     auto color = glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0);
     glUniform3fv(ShaderManager::ClothShader.Attributes.color, 1, glm::value_ptr(color));  // Update the color, if necessary
-    glUniform1i(ShaderManager::ClothShader.Attributes.texID, UNTEXTURED);                 // Set which texture to use
+    glUniform1i(ShaderManager::ClothShader.Attributes.texID, TEX0);                       // Set which texture to use
     glUniform1f(ShaderManager::EnvironmentShader.Attributes.specFactor, 0.2);
 
     glDrawElements(GL_TRIANGLES, NUM_TRIANGLE_INDICES, GL_UNSIGNED_INT, (void *)0);

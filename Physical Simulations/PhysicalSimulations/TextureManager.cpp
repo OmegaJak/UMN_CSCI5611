@@ -15,7 +15,7 @@ void TextureManager::InitTextures() {
     glBindVertexArray(ShaderManager::EnvironmentShader.VAO);
 
     // Allocate Texture 0
-    SDL_Surface* surface = IMG_Load("stone_floor.png");
+    SDL_Surface* surface = IMG_Load("house_stark_flag_by_achaley.png");
     glActiveTexture(GL_TEXTURE0);
     InitTexture(&tex0, surface);
 

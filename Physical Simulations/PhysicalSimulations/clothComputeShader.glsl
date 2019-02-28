@@ -148,6 +148,9 @@ void CalculateForces() {
     vec3 opposeVelocityAlongNormal = -1 * amt * Normals[gid].xyz;
     acc += opposeVelocityAlongNormal;
 
+    // Extra damping
+    acc -= 0.1 * Velocities[gid].xyz;
+
     Accelerations[gid].xyz = acc;
     //NewVelocities[gid].xyz += acc * dt;
 }

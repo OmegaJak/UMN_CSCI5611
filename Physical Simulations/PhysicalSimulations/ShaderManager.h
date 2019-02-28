@@ -21,6 +21,7 @@ typedef struct {
     ShaderAttributes Attributes;
     GLuint VAO;
     GLuint IBO;
+    GLuint VBO;
 } RenderShader;
 
 class ShaderManager {

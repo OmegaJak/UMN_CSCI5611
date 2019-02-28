@@ -35,6 +35,10 @@ struct massParams {
     massConnections connections;
 };
 
+struct texcoord {
+    GLfloat u, v;
+};
+
 class ClothManager {
    public:
     ClothManager();
@@ -43,17 +47,18 @@ class ClothManager {
     void InitGL();
     void UpdateComputeParameters() const;
     void ExecuteComputeShader();
+    static void InitClothTexcoords();
     static void InitClothIBO();
 
     static const int WORK_GROUP_SIZE = 128;
 
     static const int NUM_THREADS = 128;
-    static const int MASSES_PER_THREAD = 128;
+    static const int MASSES_PER_THREAD = 180;
     static const int NUM_MASSES = NUM_THREADS * MASSES_PER_THREAD;
 
     static const int CLOTH_WIDTH = 32;
     static const int CLOTH_HEIGHT = 32;
-    static const int CLOTH_WEIGHT = 20;
+    static const int CLOTH_WEIGHT = 25;
 
     static const int TRIANGLES_PER_THREAD = (2 * (MASSES_PER_THREAD - 1));
     static const int NUM_TRIANGLES = TRIANGLES_PER_THREAD * (NUM_THREADS - 1);
