@@ -42,8 +42,8 @@ void ClothManager::InitGL() {
         float y = threadnum * 0.5 * (CLOTH_WIDTH / float(NUM_THREADS));
         float x = (i % MASSES_PER_THREAD) * simParameters.restLength;
         if (i % MASSES_PER_THREAD != 0) {
-            y += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength;
-            x += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength;
+            y += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength * 0.5;
+            x += (Utils::randBetween(0, 1) - 0.5) * simParameters.restLength * 0.5;
         }
         positions[i] = {x, y, 20.0f, 1.0f};
     }
@@ -229,6 +229,7 @@ void ClothManager::RenderParticles(float dt, Environment *environment) {
     auto color = glm::vec3(101 / 255.0, 67 / 255.0, 33 / 255.0);
     glUniform3fv(ShaderManager::ClothShader.Attributes.color, 1, glm::value_ptr(color));  // Update the color, if necessary
     glUniform1i(ShaderManager::ClothShader.Attributes.texID, UNTEXTURED);                 // Set which texture to use
+    glUniform1f(ShaderManager::EnvironmentShader.Attributes.specFactor, 0.2);
 
     glDrawElements(GL_TRIANGLES, NUM_TRIANGLE_INDICES, GL_UNSIGNED_INT, (void *)0);
 

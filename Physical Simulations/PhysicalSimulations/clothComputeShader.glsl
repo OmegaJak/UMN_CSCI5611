@@ -143,6 +143,7 @@ void CalculateForces() {
 
     vec3 acc = gravity + leftAcc + rightAcc + upAcc + downAcc;
 
+    // 'Drag'
     float amt = dot(Normals[gid].xyz, Velocities[gid].xyz);
     vec3 opposeVelocityAlongNormal = -1 * amt * Normals[gid].xyz;
     acc += opposeVelocityAlongNormal;
@@ -173,7 +174,7 @@ void ExecuteCollisions() {
 
         vec3 velTowardCenter = dot(-1 * normal, Velocities[gid].xyz) * (-1 * normal);
         Velocities[gid].xyz -= velTowardCenter;
-        Velocities[gid].xyz *= 0.999;
+        Velocities[gid].xyz *= 0.9999;
         //Velocities[gid].xyz = normal * (dot(Velocities[gid].xyz * -0.9, normal));
         //Velocities[gid].xyz = vec3(0, 0, 0);
     }

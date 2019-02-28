@@ -315,8 +315,6 @@ int main(int argc, char* argv[]) {
             lastFramesTimer = 0;
         }
 
-        clothManager.ExecuteComputeShader();
-
         // Rendering //
         float gray = 0.6f;
         glClearColor(gray, gray, gray, 1.0f);  // Clear the screen to default color
@@ -343,6 +341,9 @@ int main(int argc, char* argv[]) {
                   << " frames "
                   << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord;
         SDL_SetWindowTitle(window, debugText.str().c_str());
+
+        // Simulate using compute shader
+        clothManager.ExecuteComputeShader();
 
         // Render the environment
         ShaderManager::ActivateShader(ShaderManager::EnvironmentShader);
