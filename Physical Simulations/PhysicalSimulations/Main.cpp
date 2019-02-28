@@ -235,7 +235,7 @@ int main(int argc, char* argv[]) {
     int mouseX = -1, mouseY = -1;
     float normalizedMouseX, normalizedMouseY;
     glm::vec3 lastMouseWorldCoord;
-    float gravityCenterDistance = 10;
+    float gravityCenterDistance = 15;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
