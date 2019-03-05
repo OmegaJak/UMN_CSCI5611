@@ -2,10 +2,10 @@
 final int N = 50;
 final int size = (N+2)*(N+2);
 final float h = 1 / N;
-final float dt = 0.1;
+final float dt = 0.05;
 final float source = 50000;
 
-final float diffusion = 0.0001;
+final float diffusion = 0.0000001;
 final float viscosity = 0.00005;
 
 float[] u = new float[size];
@@ -14,6 +14,13 @@ float[] u_prev = new float[size];
 float[] v_prev = new float[size];
 float[] dens = new float[size];
 float[] dens_prev = new float[size];
+
+boolean isShiftPressed = false;
+boolean showVelocity = false;
+
+int blueThreshold = 0;
+int redThreshold = 500;
+int greenThreshold = 1000;
 
 int IX(int i, int j) {
 	return i + (N + 2) * j;
@@ -29,9 +36,17 @@ void settings() {
 }
 
 void setup() {
+  println("Usage: ");
+  println("Click and drag with the mouse to add fluid with velocity");
+  println("Hold shift to only apply velocity");
+  println("Press \'r\' to reset");
+  println();
+  
   background(0);
   stroke(255, 0, 0);
-  
+  for (int i = 0; i < size; i++) {
+    u[i] = v[i] = u_prev[i] = v_prev[i] = dens[i] = dens_prev[i] = 0; 
+  }
 }
 
 void draw() {
@@ -55,15 +70,48 @@ void draw() {
   drawDensity();
   drawVelocity();
   
+  /*
   float totalDensity = 0;
   for (int i = 1; i <= N; i++) {
     for (int j = 1; j <= N; j++) {
       totalDensity += dens[IX(i, j)];  
       
-      //v[IX(i, j)] += dt * 0.1 * dens[IX(i, j)];
+      //v[IX(i, j)] += dt * 0.005 * dens[IX(i, j)];
     }
   }
-  println("Total density: " + totalDensity);
+  println("Total density: " + totalDensity);*/
+  
+  surface.setTitle(frameRate + " FPS | blueThreshold: " + blueThreshold + " | redThreshold: " + redThreshold + " | greenThreshold: " + greenThreshold);
+}
+
+void keyPressed() {
+  int incrementAmount = 50;
+  
+  if (key == CODED && keyCode == SHIFT) {
+    isShiftPressed = true; 
+  } else if (key == 'r') {
+    setup(); 
+  } else if (key == 'v') {
+    showVelocity = !showVelocity; 
+  } else if (key == '1') {
+    blueThreshold = max(blueThreshold - incrementAmount, 0); 
+  } else if (key == '2') {
+    blueThreshold += incrementAmount;
+  } else if (key == '3') {
+    redThreshold = max(redThreshold - incrementAmount, 0);
+  } else if (key == '4') {
+    redThreshold += incrementAmount; 
+  } else if (key == '5') {
+    greenThreshold = max(greenThreshold - incrementAmount, 0);
+  } else if (key == '6') {
+    greenThreshold += incrementAmount; 
+  }
+}
+
+void keyReleased() {
+  if (key == CODED && keyCode == SHIFT) {
+    isShiftPressed = false; 
+  }
 }
 
 void densStep() {
@@ -199,7 +247,7 @@ void addDensityToCell(int i, int j, float density) {
 }
 
 void addDensity() {
-	if (mousePressed) {
+	if (mousePressed && !isShiftPressed) {
     int i = (int( (N / float(width)) * mouseX )) + 1;
     int j = (int( (N / float(height)) * mouseY )) + 1;
 
@@ -230,18 +278,26 @@ void drawDensity() {
       int i = getPixelCellIndex(x, width);
       int j = getPixelCellIndex(y, height);
       float density = int(dens[IX(i, j)]);
-      pixels[PX(x, y)] = color(0, 0, density, 255);
+      
+      float red = 0; float green = 0; float blue = 0;
+      if (density > blueThreshold) blue = density - blueThreshold;
+      if (density > redThreshold) red = density - redThreshold;
+      if (density > greenThreshold) green = density - greenThreshold;
+      
+      pixels[PX(x, y)] = color(green, red, blue, 255);
     }
   }
   updatePixels();
 }
 
 void drawVelocity() {
+  if (!showVelocity) return;
+  
   stroke(255, 0, 0, 255);
   
   float cellWidth = width / float(N);
   float cellHeight = height / float(N);
-  float lengthFactor = 10.0;
+  float lengthFactor = 30.0;
 
   for (int i = 1; i <= N; i++) {
     for (int j = 1; j <= N; j++) {
