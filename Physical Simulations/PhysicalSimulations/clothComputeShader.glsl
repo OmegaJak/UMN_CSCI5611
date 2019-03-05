@@ -146,7 +146,7 @@ void CalculateForces() {
     // 'Drag'
     float amt = dot(Normals[gid].xyz, Velocities[gid].xyz);
     vec3 opposeVelocityAlongNormal = -1 * amt * Normals[gid].xyz;
-    acc += opposeVelocityAlongNormal;
+    acc += 0.35 * opposeVelocityAlongNormal;
 
     // Extra damping
     acc -= 0.1 * Velocities[gid].xyz;
