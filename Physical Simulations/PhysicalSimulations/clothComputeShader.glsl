@@ -92,7 +92,7 @@ vec3 getSpringAcceleration(vec3 p1, vec3 v1, float m1, vec3 p2, vec3 v2) {
     return massOneAcc;
 }
 
-// (Failed) attempt at RK4 integration
+// RK4 integration
 //vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
 //    if (massOne == BAD_INDEX || massTwo == BAD_INDEX) return vec3(0, 0, 0);
 //    vec3 originalPosition = Positions[massOne].xyz;
@@ -116,9 +116,10 @@ vec3 getSpringAcceleration(vec3 p1, vec3 v1, float m1, vec3 p2, vec3 v2) {
 //    vec3 a4 = getSpringAcceleration(p_end, v_end, mass, p2, v2);
 //
 //
-//    return (1 / 6) * (a1 + 2 * a2 + 2 * a3 + a4);
+//    return (1.0 / 6.0) * (a1 + 2 * a2 + 2 * a3 + a4);
 //}
 
+// Midpoint
 vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
     if (massOne == BAD_INDEX || massTwo == BAD_INDEX) return vec3(0, 0, 0);
     vec3 originalPosition = Positions[massOne].xyz;
@@ -128,11 +129,11 @@ vec3 getAccelerationFromSpringConnection(uint massOne, uint massTwo) {
     vec3 v2 = Velocities[massTwo].xyz;
 
     vec3 a = getSpringAcceleration(originalPosition, originalVelocity, mass, p2, v2);
-    /*vec3 v_half = originalVelocity + a * 0.5 * dt;
+    vec3 v_half = originalVelocity + a * 0.5 * dt;
     vec3 p_half = originalPosition + v_half * 0.5 * dt;
 
-    vec3 a_half = getSpringAcceleration(p_half, v_half, mass, p2, v2);*/
-    return a;
+    vec3 a_half = getSpringAcceleration(p_half, v_half, mass, p2, v2);
+    return a_half;
 }
 
 void CalculateForces() {
@@ -146,7 +147,7 @@ void CalculateForces() {
     // 'Drag'
     float amt = dot(Normals[gid].xyz, Velocities[gid].xyz);
     vec3 opposeVelocityAlongNormal = -1 * amt * Normals[gid].xyz;
-    acc += 0.35 * opposeVelocityAlongNormal;
+    acc += 0.4 * opposeVelocityAlongNormal;
 
     // Extra damping
     acc -= 0.1 * Velocities[gid].xyz;
@@ -163,7 +164,8 @@ void IntegrateForces() {
         LastPositions[gid].xyz = Positions[gid].xyz;
         Positions[gid].xyz = newPos;*/
         Velocities[gid].xyz += Accelerations[gid].xyz * dt;
-        Positions[gid].xyz += Velocities[gid].xyz * dt + Accelerations[gid].xyz * dt * dt;
+        //Positions[gid].xyz += Velocities[gid].xyz * dt + Accelerations[gid].xyz * dt * dt;
+        Positions[gid].xyz += Velocities[gid].xyz * dt;
     } else {
         Velocities[gid].xyz = vec3(0, 0, 0);
     }

@@ -16,14 +16,13 @@
 #include "TextureManager.h"
 const char* INSTRUCTIONS =
     "***************\n"
-    "This is a particle system made by Jackson Kruger for CSCI 5611 at the University of Minnesota.\n"
+    "This is a cloth simulation made by Jackson Kruger for CSCI 5611 at the University of Minnesota.\n"
     "\n"
     "Controls:\n"
-    "Left click - Set position of center of gravity (for free & water modes) and apply force towards center of gravity\n"
+    "Space - Play/Pause simulation"
+    "Left click - Set position of the ball\n"
     "WASD - Camera movement\n"
     "R/F - Camera up/down"
-    "Space - Pause/Play simulation\n"
-    "g - Launch sun (in sunlauncher mode)\n"
     "+/- - Increase/decrease various parameters, depending on the other keys held:\n"
     "   None - Modify simulation speed\n"
     "   Ctrl - Modify the factor that controls how attractive/repulsive the gravity center is\n"
@@ -32,13 +31,6 @@ const char* INSTRUCTIONS =
     "Esc - Quit\n"
     "F11 - Fullscreen\n"
     "***************\n";
-
-const char* USAGE =
-    "Usage:\n"
-    "Only one input is accepted, a single number. The number has the following meaning:\n"
-    "0 - Free Mode\n"
-    "1 - Sunlauncher Mode\n"
-    "2 - Water mode\n";
 
 #include "glad.h"  //Include order can matter here
 #if defined(__APPLE__) || defined(__linux__)
@@ -235,7 +227,7 @@ int main(int argc, char* argv[]) {
     int mouseX = -1, mouseY = -1;
     float normalizedMouseX, normalizedMouseY;
     glm::vec3 lastMouseWorldCoord;
-    float gravityCenterDistance = 15;
+    float gravityCenterDistance = 10;
     while (!quit) {
         while (SDL_PollEvent(&windowEvent)) {  // inspect all events in the queue
             if (windowEvent.type == SDL_QUIT) quit = true;
@@ -248,20 +240,11 @@ int main(int argc, char* argv[]) {
                     fullscreen = !fullscreen;
                     SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN : 0);  // Toggle fullscreen
                 } else if (windowEvent.key.keysym.sym == SDLK_EQUALS || windowEvent.key.keysym.sym == SDLK_MINUS) {
-                    float modAmount = 0.1;
-                    if (windowEvent.key.keysym.mod & KMOD_CTRL) modAmount *= 10;
-                    if (windowEvent.key.keysym.mod & KMOD_ALT) modAmount *= 10;
-                    if (windowEvent.key.keysym.mod & KMOD_SHIFT) modAmount *= 2;
+                    float modAmount = 1;
 
                     if (windowEvent.key.keysym.sym == SDLK_MINUS) modAmount *= -1;
 
-                    if (windowEvent.key.keysym.mod & KMOD_CTRL) {
-                        // fullGravityAcceleration += modAmount;
-                    } else if (windowEvent.key.keysym.mod & KMOD_ALT) {
-                        gravityCenterDistance += modAmount;
-                    } else {
-                        // particleManager.particleParameters.simulationSpeed += modAmount;
-                    }
+                    gravityCenterDistance += modAmount;
                 }
             } else if (windowEvent.type == SDL_KEYDOWN) {
                 if (windowEvent.key.keysym.sym == SDLK_SPACE) {
@@ -337,7 +320,8 @@ int main(int argc, char* argv[]) {
                   << ClothManager::MASSES_PER_THREAD << " masses "
                   << " | " << lastAverageFrameTime << " per frame (" << lastFramerate << "FPS) average over " << framesPerSample
                   << " frames "
-                  << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord;
+                  << " | cameraPosition: " << camera.GetPosition() << " | CoG position: " << lastMouseWorldCoord
+                  << " | Sim running: " << (clothManager.simParameters.dt > 0);
         SDL_SetWindowTitle(window, debugText.str().c_str());
 
         // Simulate using compute shader
