@@ -1,4 +1,6 @@
-// https://www.openprocessing.org/sketch/455868/
+// The following resources helped immensely writing this:
+// A processingjs implementation that helped inform mine: https://www.openprocessing.org/sketch/455868/
+// Jos Stam's original paper: http://www.dgp.toronto.edu/people/stam/reality/Research/pdf/GDC03.pdf
 final int N = 50;
 final int size = (N+2)*(N+2);
 final float h = 1 / N;
